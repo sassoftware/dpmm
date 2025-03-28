@@ -1,0 +1,133 @@
+[tool.poetry]
+name = "dpmm"
+version = "v0.1.0"
+description = "dpmm is an open-source python package providing a end-to-end Differentially Private tabular synthetic data pipeline."
+authors = ["Sofiane Mahiou <sofiane.mahiou@sas.com>", "Georgi Ganev <georgi.ganev@sas.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+poetry = ">=1.2.2"
+twine = "^5.0.0"
+coverage = "*"
+mock = "*"
+pytest = "*"
+pandas = "2.2.0"
+numpy = "1.26.4"
+scipy = "^1.15.2"
+scikit-learn = "1.5.0"
+tqdm = "^4.67.1"
+networkx = "<3.0"
+disjoint-set = "0.7.4"
+opendp = "0.12.1"
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^9.0.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "cloudpipe"
+url = "https://artifact.unx.sas.com/artifactory/api/pypi/cloudpipe-pypi-vrel/simple"
+priority = "primary"
+
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I"]
+ignore = ["E402", "E501", "E731"]
+
+
+[tool.coverage.paths]
+source = ["src/dpmm", "*/site-packages/dpmm"]
+
+
+[tool.ruff.lint.isort]
+from-first = true
+known-first-party = ["dpmm"]
+force-wrap-aliases = true
+combine-as-imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["src/dpmm"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_empty = true
+
+[tool.pytest.ini_options]
+norecursedirs = [
+    ".git",
+    ".tox",
+    ".env",
+    ".eggs",
+    "dist",
+    "build",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+    "tests.py",
+]
+
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+isolated_build = true
+env_list = py311, report
+
+[testenv]
+setenv =
+    PYTHONPATH={toxinidir}/
+    PYTHONUNBUFFERED=yes
+passenv = *
+usedevelop = false
+allowlist_externals = poetry
+extras =
+    dev
+commands_pre = poetry install --sync
+commands =
+    poetry run coverage run -p -m pytest -vv {posargs:tests/}
+    poetry run coverage erase
+
+[testenv:clean]
+deps = coverage
+skip_install = true
+envdir = {toxworkdir}/coverage
+allowlist_externals = rm, poetry
+commands =
+    rm -rf build/ dist/
+    poetry run coverage erase
+
+[testenv:report]
+skip_install = true
+envdir = {toxworkdir}/coverage
+commands =
+    poetry run coverage combine
+    poetry run coverage report
+
+[testenv:build]
+skip_install = true
+commands =
+    poetry install --sync
+    poetry build --format=wheel
+
+[testenv:release]
+skip_install = true
+commands =
+    {[testenv:build]commands}
+    twine upload --skip-existing --verbose dist/*.*
+
+
+"""
