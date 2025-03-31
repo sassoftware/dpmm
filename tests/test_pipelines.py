@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
 import pandas as pd
-from dpmm.engines.aim import AIMEngine
-from dpmm.engines.priv_bayes import PrivBayesEngine
-from dpmm.engines.mst import MSTEngine
+from dpmm.pipelines.aim import AIMEngine
+from dpmm.pipelines.priv_bayes import PrivBayesEngine
+from dpmm.pipelines.mst import MSTEngine
 
 @pytest.fixture
 def sample_data():

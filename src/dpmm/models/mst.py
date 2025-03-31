@@ -38,7 +38,7 @@ and does not rely on public provisional data for measurement selection.
 """
 
 
-logger = getLogger("dpgm")
+logger = getLogger("dpmm")
 
 
 def compute_weight(est, data, clique):

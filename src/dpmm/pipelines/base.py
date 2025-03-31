@@ -1,7 +1,7 @@
 from dpmm.pipeline import GenerativeModel, GenerativePipeline, TableBinner
 
 
-class Engine(GenerativePipeline):
+class MMPipeline(GenerativePipeline):
     model: GenerativeModel = None
 
     def __init__(

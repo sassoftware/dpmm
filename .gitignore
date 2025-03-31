@@ -1,0 +1,56 @@
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.syncthing.*
+ehthumbs.db
+Thumbs.db
+
+*.pem
+*.zip
+
+# Cruft & Swarf #
+#################
+*.bak
+*.iml
+*.ipr
+*.iws
+*.swp
+*~
+*.egg
+*.egg-info
+*.pyc
+__pycache__
+
+.coverage*
+.eggs/
+.metadata
+.project
+.settings
+.terraform/
+.tox
+/.settings/
+/.classpath
+/.idea
+/.project
+/.vscode
+
+# folders we dont need to checkin
+build/
+bugs/
+logs/
+split/
+tmp/
+tools/
+venv/
+deps/
+
+# PBR
+AUTHORS
+VERSION
+
+# Poetry
+requirements.txt

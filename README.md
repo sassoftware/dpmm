@@ -8,12 +8,6 @@ This project provides implementations of differentially private generative model
 - PrivBayesGM (Private Bayesian Network Generative Model)
 - MSTGM (Minimum Spanning Tree Generative Model)
 
-### What's New
-
-- Added unit tests for AIMGM, PrivBayesGM, and MSTGM.
-- Improved the deterministic behavior of models when setting random states.
-- Enhanced the serialization and deserialization process for models.
-
 ### Prerequisites
 
 - Python 3.11 or higher
@@ -32,7 +26,7 @@ To get started with using the differentially private generative models, follow t
 1. Import the necessary modules and load your data:
    ```python
    import pandas as pd
-   from dpmm.engines import PrivBayesEngine
+   from dpmm.pipelines import MSTEngine
 
    # Load your data
    data = pd.read_csv('your_data.csv')
@@ -41,7 +35,7 @@ To get started with using the differentially private generative models, follow t
 2. Initialize and fit a model:
 
    ```python
-   model = PrivBayesEngine(
+   model = MSTEngine(
       # Generator Parameters
       synth_epsilon=1.0, 
       gen_kwargs=dict(domain=None, compress=True, max_model_size=80), 
