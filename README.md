@@ -71,7 +71,7 @@ Here is an example of using the MST model:
 
 ```python
 import pandas as pd
-from dpmm.models import MST
+from dpmm.models import MSTGM as MST
 
 # Load your data
 data = pd.read_csv('your_data.csv')
