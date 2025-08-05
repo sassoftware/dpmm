@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "dpmm"
-version = "0.1.7"
+version = "0.1.8"
 description = "dpmm: a library for synthetic tabular data generation with rich functionality and end-to-end Differential Privacy guarantees"
 authors = ["Sofiane Mahiou, Georgi Ganev <sofiane.mahiou@sas.com>"]
 
 
 [project]
 name = "dpmm"
-version = "0.1.7"
+version = "0.1.8"
 description = "dpmm: a library for synthetic tabular data generation with rich functionality and end-to-end Differential Privacy guarantees"
 authors = [
     {name = "Sofiane Mahiou, Georgi Ganev", email = "sofiane.mahiou@sas.com"}
