@@ -54,11 +54,13 @@ class GraphicalModel:
         return self._prng
 
     def save(self, path):
-        pickle.dump(self, open(path, "wb"))
+        with open(path, "wb") as f:
+            pickle.dump(self, f)
 
     @classmethod
     def load(cls, path):
-        return pickle.load(open(path, "rb"))
+        with open(path, "rb") as f:
+            return pickle.load(f)
 
     def project(self, attrs):
         """Project the distribution onto a subset of attributes.

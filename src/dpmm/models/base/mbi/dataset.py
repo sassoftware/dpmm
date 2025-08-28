@@ -43,7 +43,8 @@ class Dataset:
         :param domain: path to json file encoding the domain information
         """
         df = pd.read_csv(path)
-        config = json.load(open(domain))
+        with open(domain) as f:
+            config = json.load(f)
         domain = Domain(config.keys(), config.values())
         return Dataset(df, domain)
 
