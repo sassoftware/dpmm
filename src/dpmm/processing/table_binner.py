@@ -152,6 +152,7 @@ class TableBinner:
             [
                 (
                     np.issubdtype(np.dtype(type(cat)), np.floating)
+                    or np.issubdtype(np.dtype(type(cat)), np.integer)
                     or np.issubdtype(np.dtype(type(cat)), np.bool_)
                 )
                 for cat in categories
@@ -159,7 +160,7 @@ class TableBinner:
         )
 
         if all_numerical:
-            categories = sorted(categories, key=lambda x: x)
+            categories = sorted(categories)
         else:
             categories = sorted(categories, key=lambda x: str(x))
 

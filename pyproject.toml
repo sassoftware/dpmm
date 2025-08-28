@@ -2,8 +2,13 @@
 name = "dpmm"
 version = "0.1.8"
 description = "dpmm: a library for synthetic tabular data generation with rich functionality and end-to-end Differential Privacy guarantees"
-authors = ["Sofiane Mahiou, Georgi Ganev <sofiane.mahiou@sas.com>"]
+license = "Apache-2.0"
 
+authors = ["Sofiane Mahiou, Georgi Ganev <sofiane.mahiou@sas.com>"]
+maintainers = ["Sofiane Mahiou <sofiane.mahiou@sas.com>"]
+readme = "README.md"
+repository = "https://github.com/sassoftware/dpmm/"
+keywords = ["machine-learning", "tabular-data", "differential-privacy", "synthetic-data"]
 
 [project]
 name = "dpmm"

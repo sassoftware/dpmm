@@ -16,7 +16,8 @@ def sample_data():
         "timedelta_col": pd.to_timedelta(np.random.randint(1, 100, n_rows), unit='D'),
         "bool_col": np.random.choice([True, False], n_rows),
         "static_col": 'static_value',
-        "categorical_col": pd.Categorical(np.random.choice(['A', 'B', 'C'], n_rows))
+        "categorical_col": pd.Categorical(np.random.choice(['A', 'B', 'C'], n_rows)),
+        "categorical_numerical_col": pd.Categorical(np.random.choice(15, n_rows))
     }
     domain = {
         "int_col": {"lower": 0, "upper": 100},
@@ -25,8 +26,8 @@ def sample_data():
         "timedelta_col": {"lower": pd.Timedelta(days=1), "upper": pd.Timedelta(days=99)},
         "bool_col": {"categories": [True, False]},
         "static_col": {"categories": ['static_value']},
-        "categorical_col": {"categories": ['A', 'B', 'C']}
-
+        "categorical_col": {"categories": ['A', 'B', 'C']},
+        "categorical_numerical_col": {"categories": list(range(15))}
     }
     return pd.DataFrame(data), domain
 

@@ -5,6 +5,7 @@ from dpmm.models import AIMGM, PrivBayesGM, MSTGM
 from tempfile import TemporaryDirectory
 from pathlib import Path
 
+
 @pytest.fixture
 def sample_dataframe():
     np.random.seed(2023)
@@ -12,6 +13,7 @@ def sample_dataframe():
     columns = [f"col_{i}" for i in range(n_cols)]
     data = pd.DataFrame(np.random.randint(low=0, high=np.random.randint(10, 100), size=(10_000, n_cols)), columns=columns)
     return pd.DataFrame(data)
+
 
 @pytest.mark.parametrize("model_class", [AIMGM, PrivBayesGM, MSTGM])
 @pytest.mark.parametrize("use_domain", [True, False])
