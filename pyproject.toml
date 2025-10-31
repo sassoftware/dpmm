@@ -47,6 +47,7 @@ twine = "^5.0.0"
 coverage = "*"
 mock = "*"
 pytest = "*"
+pytest-cov = "^7.0.0"
 
 [build-system]
 requires = ["poetry-core"]

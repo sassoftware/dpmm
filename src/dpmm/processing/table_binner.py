@@ -199,7 +199,7 @@ class TableBinner:
 
             binner.fit(df, public=True)
         """
-        self.dtypes = df.dtypes
+        self.dtypes = {col: dtype.name for col, dtype in df.dtypes.items()}
         self.binners = {}
         self.cat_encoders = {}
         self.bin_domain = {}
