@@ -5,7 +5,7 @@ from dpmm.models.base.mbi.dataset import Dataset
 
 
 def meas_size(shape: Tuple):
-    return np.prod(shape) / (8 * (1028 ** 2))
+    return np.prod(shape) / (8 * (1028**2))
 
 
 def clique_size(data: Dataset, clique: Tuple):

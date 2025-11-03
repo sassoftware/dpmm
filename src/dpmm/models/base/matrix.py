@@ -37,14 +37,14 @@ class EkteloMatrix(LinearOperator):
     def _transpose(self):
         return EkteloMatrix(self.matrix.T)
 
-    def _matmat(self, V):
+    def _matmat(self, v_arr):
         """
         Matrix multiplication of a m x n matrix Q
 
         :param V: a n x p numpy array
         :return Q*V: a m x p numpy aray
         """
-        return self.matrix @ V
+        return self.matrix @ v_arr
 
     def gram(self):
         """
@@ -83,7 +83,7 @@ class EkteloMatrix(LinearOperator):
     def __mul__(self, other):
         if np.isscalar(other):
             return Weighted(self, other)
-        if type(other) == np.ndarray:
+        if type(other) is np.ndarray:
             return self.dot(other)
         if isinstance(other, EkteloMatrix):
             return Product(self, other)
@@ -172,8 +172,8 @@ class Identity(EkteloMatrix):
         self.shape = (n, n)
         self.dtype = dtype
 
-    def _matmat(self, V):
-        return V
+    def _matmat(self, v_arr):
+        return v_arr
 
     def _transpose(self):
         return self
@@ -211,8 +211,8 @@ class Ones(EkteloMatrix):
         self.shape = (m, n)
         self.dtype = dtype
 
-    def _matmat(self, V):
-        ans = V.sum(axis=0, keepdims=True)
+    def _matmat(self, v_arr):
+        ans = v_arr.sum(axis=0, keepdims=True)
         return np.repeat(ans, self.m, axis=0)
 
     def _transpose(self):
@@ -252,8 +252,8 @@ class Weighted(EkteloMatrix):
         self.shape = base.shape
         self.dtype = base.dtype
 
-    def _matmat(self, V):
-        return self.weight * self.base.dot(V)
+    def _matmat(self, v_arr):
+        return self.weight * self.base.dot(v_arr)
 
     def __mul__(self, other):
         if isinstance(other, EkteloMatrix):
@@ -296,264 +296,44 @@ class Sum(EkteloMatrix):
         # all must have same shape
         self.matrices = matrices
         self.shape = matrices[0].shape
-        self.dtype = np.result_type(*[Q.dtype for Q in matrices])
+        self.dtype = np.result_type(*[q_matrix.dtype for q_matrix in matrices])
 
-    def _matmat(self, V):
-        return sum(Q.dot(V) for Q in self.matrices)
+    def _matmat(self, v_arr):
+        return sum(q_matrix.dot(v_arr) for q_matrix in self.matrices)
 
     def _transpose(self):
-        return Sum([Q.T for Q in self.matrices])
+        return Sum([q_matrix.T for q_matrix in self.matrices])
 
     def __mul__(self, other):
         if isinstance(other, EkteloMatrix):
             return Sum(
-                [Q @ other for Q in self.matrices]
+                [q_matrix @ other for q_matrix in self.matrices]
             )  # should use others rmul though
         return EkteloMatrix.__mul__(self, other)
 
     def diag(self):
-        return sum(Q.diag() for Q in self.matrices)
+        return sum(q_matrix.diag() for q_matrix in self.matrices)
 
     def trace(self):
-        return sum(Q.trace() for Q in self.matrices)
+        return sum(q_matrix.trace() for q_matrix in self.matrices)
 
     @property
     def matrix(self):
         if _any_sparse(self.matrices):
-            return sum(Q.sparse_matrix() for Q in self.matrices)
-        return sum(Q.dense_matrix() for Q in self.matrices)
-
-
-# class BlockDiag(EkteloMatrix):
-#     def __init__(self, matrices):
-#         self.matrices = matrices
-#         rows = sum(Q.shape[0] for Q in matrices)
-#         cols = sum(Q.shape[1] for Q in matrices)
-#         self.shape = (rows, cols)
-#         self.dtype = np.result_type(*[Q.dtype for Q in matrices])
-#
-#     # TODO: implement _matmat
-#
-#     def diag(self):
-#         return np.concatenate([Q.diag() for Q in self.matrices])
-#
-#     @property
-#     def matrix(self):
-#         return sparse.block_diag([Q.matrix for Q in self.matrices], format='csr')
-#
-#
-# class VStack(EkteloMatrix):
-#     def __init__(self, matrices):
-#         m = sum(Q.shape[0] for Q in matrices)
-#         n = matrices[0].shape[1]
-#         assert all(Q.shape[1] == n for Q in matrices), 'dimension mismatch'
-#         self.shape = (m, n)
-#         self.matrices = matrices
-#         self.dtype = np.result_type(*[Q.dtype for Q in matrices])
-#
-#     def _matmat(self, V):
-#         return np.vstack([Q.dot(V) for Q in self.matrices])
-#
-#     def _transpose(self):
-#         return HStack([Q.T for Q in self.matrices])
-#
-#     def __mul__(self, other):
-#         if isinstance(other, EkteloMatrix):
-#             return VStack([Q @ other for Q in self.matrices])  # should use others rmul though
-#         return EkteloMatrix.__mul__(self, other)
-#
-#     def gram(self):
-#         return Sum([Q.gram() for Q in self.matrices])
-#
-#     @property
-#     def matrix(self):
-#         if _any_sparse(self.matrices):
-#             return self.sparse_matrix()
-#         return self.dense_matrix()
-#
-#     def dense_matrix(self):
-#         return np.vstack([Q.dense_matrix() for Q in self.matrices])
-#
-#     def sparse_matrix(self):
-#         return sparse.vstack([Q.sparse_matrix() for Q in self.matrices])
-#
-#     def __abs__(self):
-#         return VStack([Q.__abs__() for Q in self.matrices])
-#
-#     def __sqr__(self):
-#         return VStack([Q.__sqr__() for Q in self.matrices])
-#
-#
-# class HStack(EkteloMatrix):
-#     def __init__(self, matrices):
-#         # all matrices must have same number of rows
-#         cols = [Q.shape[1] for Q in matrices]
-#         m = matrices[0].shape[0]
-#         n = sum(cols)
-#         assert all(Q.shape[0] == m for Q in matrices), 'dimension mismatch'
-#         self.shape = (m, n)
-#         self.matrices = matrices
-#         self.dtype = np.result_type(*[Q.dtype for Q in matrices])
-#         self.split = np.cumsum(cols)[:-1]
-#
-#     def _matmat(self, V):
-#         vs = np.split(V, self.split)
-#         ans = np.zeros((self.shape[0], V.shape[1]), dtype=self.dtype)
-#         for Q, z in zip(self.matrices, vs):
-#             ans += Q.dot(z)
-#         return ans
-#
-#     def _transpose(self):
-#         return VStack([Q.T for Q in self.matrices])
-#
-#     @property
-#     def matrix(self):
-#         if _any_sparse(self.matrices):
-#             return self.sparse_matrix()
-#         return self.dense_matrix()
-#
-#     def dense_matrix(self):
-#         return np.hstack([Q.dense_matrix() for Q in self.matrices])
-#
-#     def sparse_matrix(self):
-#         return sparse.hstack([Q.sparse_matrix() for Q in self.matrices])
-#
-#     def __mul__(self, other):
-#         if isinstance(other, VStack):
-#             # and shapes match...
-#             return Sum([A @ B for A, B in zip(self.matrices, other.matrices)])
-#         return EkteloMatrix.__mul__(self, other)
-#
-#     def __rmul__(self, other):
-#         if isinstance(other, EkteloMatrix):
-#             return HStack([other @ Q for Q in self.matrices])
-#         return EkteloMatrix.__mul__(self, other)
-#
-#     def __abs__(self):
-#         return HStack([Q.__abs__() for Q in self.matrices])
-#
-#     def __sqr__(self):
-#         return HStack([Q.__sqr__() for Q in self.matrices])
-#
-#
-# class Kronecker(EkteloMatrix):
-#     def __init__(self, matrices):
-#         self.matrices = matrices
-#         self.shape = tuple(np.prod([Q.shape for Q in matrices], axis=0))
-#         self.dtype = np.result_type(*[Q.dtype for Q in matrices])
-#
-#     def _matmat(self, V):
-#         X = V.T
-#         for Q in self.matrices[::-1]:
-#             m, n = Q.shape
-#             X = Q.dot(X.reshape(-1, n).T)
-#         return X.reshape(self.shape[0], -1)
-#
-#     def _transpose(self):
-#         return Kronecker([Q.T for Q in self.matrices])
-#
-#     def gram(self):
-#         return Kronecker([Q.gram() for Q in self.matrices])
-#
-#     @property
-#     def matrix(self):
-#         if _any_sparse(self.matrices):
-#             return self.sparse_matrix()
-#         return self.dense_matrix()
-#
-#     def dense_matrix(self):
-#         return reduce(np.kron, [Q.dense_matrix() for Q in self.matrices])
-#
-#     def sparse_matrix(self):
-#         return reduce(sparse.kron, [Q.sparse_matrix() for Q in self.matrices])
-#
-#     def sensitivity(self):
-#         return np.prod([Q.sensitivity() for Q in self.matrices])
-#
-#     def inv(self):
-#         return Kronecker([Q.inv() for Q in self.matrices])
-#
-#     def pinv(self):
-#         return Kronecker([Q.pinv() for Q in self.matrices])
-#
-#     def diag(self):
-#         return reduce(np.kron, [Q.diag() for Q in self.matrices])
-#
-#     def trace(self):
-#         return np.prod([Q.trace() for Q in self.matrices])
-#
-#     def __mul__(self, other):
-#         # perform the multiplication in the implicit representation if possible
-#         if isinstance(other, Kronecker):
-#             return Kronecker([A @ B for A, B in zip(self.matrices, other.matrices)])
-#         elif isinstance(other, HStack):
-#             return other.__rmul__(self)
-#         return EkteloMatrix.__mul__(self, other)
-#
-#     def __abs__(self):
-#         return Kronecker([Q.__abs__() for Q in self.matrices])
-#
-#     def __sqr__(self):
-#         return Kronecker([Q.__sqr__() for Q in self.matrices])
-#
-#
-# class Haar(EkteloMatrix):
-#     """
-#     The Haar wavelet is a square matrix of size n x n where n is a power of 2
-#     """
-#     def __init__(self, n, dtype=np.float64):
-#         self.n = n
-#         self.k = int(math.log(n, 2))
-#         assert 2**self.k == n, 'n must be a power of 2'
-#         self.shape = (n, n)
-#         self.dtype = dtype
-#
-#     def _matmat(self, X):
-#         y = X.copy()
-#         n = self.n
-#         for _ in range(self.k):
-#             y[:n] = np.vstack([y[:n][0::2] + y[:n][1::2], y[:n][0::2] - y[:n][1::2]])
-#             n = n // 2
-#         return y
-#
-#     def _rmatvec(self, y):
-#         # can implement this instead of _transpose
-#         x = y.copy()
-#         m = 1
-#         for _ in range(self.k):
-#             n = 2 * m
-#             # be careful here, don't separate into two calls
-#             x[0:n:2], x[1:n:2] = x[:m] + x[m:n], x[:m] - x[m:n]
-#             m *= 2
-#         return x
-#
-#     def _transpose(self):
-#         return LinearOperator._adjoint(self)
-#
-#     def sensitivity(self):
-#         return self.k + 1.0
-#
-#     @property
-#     def matrix(self):
-#         H = sparse.eye(1, format='csr')
-#         for m in [2**c for c in range(self.k)]:
-#             I = sparse.eye(m, format='csr')
-#             A = sparse.kron(H, [1, 1], format='csr')
-#             B = sparse.kron(I, [1, -1], format='csr')
-#             H = sparse.vstack([A, B], format='csr')
-#         return H
+            return sum(q_matrix.sparse_matrix() for q_matrix in self.matrices)
+        return sum(q_matrix.dense_matrix() for q_matrix in self.matrices)
 
 
 class Product(EkteloMatrix):
-    def __init__(self, A, B):
-        assert A.shape[1] == B.shape[0]
-        self._A = A
-        self._B = B
-        self.shape = (A.shape[0], B.shape[1])
-        self.dtype = np.result_type(A.dtype, B.dtype)
+    def __init__(self, a, b):
+        assert a.shape[1] == b.shape[0]
+        self._A = a
+        self._B = b
+        self.shape = (a.shape[0], b.shape[1])
+        self.dtype = np.result_type(a.dtype, b.dtype)
 
-    def _matmat(self, X):
-        return self._A.dot(self._B.dot(X))
+    def _matmat(self, x_arr):
+        return self._A.dot(self._B.dot(x_arr))
 
     def _transpose(self):
         return Product(self._B.T, self._A.T)
@@ -570,4 +350,4 @@ class Product(EkteloMatrix):
 
 
 def _any_sparse(matrices):
-    return any(sparse.issparse(Q.matrix) for Q in matrices)
+    return any(sparse.issparse(q_matrix.matrix) for q_matrix in matrices)

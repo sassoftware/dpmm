@@ -13,8 +13,8 @@ from dpmm.utils import to_path
 class GenerativePipeline:
     def __init__(self, gen: GenerativeModel, proc: Optional[TableBinner] = None):
         """
-        Initialize A GenerativePipeline object. 
-        This object is used to chain together a generative model and a preprocessing step. 
+        Initialize A GenerativePipeline object.
+        This object is used to chain together a generative model and a preprocessing step.
         Ensuring that generative model can ingest any data type [e.g. categorical, numerical, etc.]
         This will also ensure that the domain and structural zeros are set correctly for the generative model.
 
@@ -57,7 +57,7 @@ class GenerativePipeline:
         structural_zeros: Optional[Dict] = None,
         random_state: Union[int, RandomState] = None,
         public: bool = False,
-        marginals_only: bool = False
+        marginals_only: bool = False,
     ) -> None:
         """
         Fit the pipeline to the data.
@@ -233,12 +233,13 @@ class MMPipeline(GenerativePipeline):
                 binner_type = "uniform"
 
         gen = self.model(
-            epsilon=epsilon, 
+            epsilon=epsilon,
             delta=delta,
             compress=compress,
             max_model_size=max_model_size,
             n_jobs=n_jobs,
-            **gen_kwargs)
+            **gen_kwargs
+        )
 
         if disable_processing:
             proc = None

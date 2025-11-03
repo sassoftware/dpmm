@@ -13,7 +13,6 @@ from typing import Dict, Self
 
 import joblib
 import numpy as np
-import pandas as pd
 from numpy.random import RandomState
 from scipy import sparse
 
@@ -46,12 +45,12 @@ def powerset(iterable: list) -> itertools.chain:
     )
 
 
-def downward_closure(Ws: list) -> list:
+def downward_closure(workload: list) -> list:
     """
     Compute the downward closure of a set of projections.
 
-    :param Ws: A list of projections.
-    :type Ws: list
+    :param workload: A list of projections.
+    :type workload: list
     :return: A sorted list of subsets in the downward closure.
     :rtype: list
 
@@ -61,7 +60,7 @@ def downward_closure(Ws: list) -> list:
         [(1,), (2,), (3,), (1, 2), (2, 3)]
     """
     ans = set()
-    for proj in Ws:
+    for proj in workload:
         ans.update(powerset(proj))
     return list(sorted(ans, key=len))
 
@@ -172,8 +171,8 @@ def measure_one_way(
         y = x
     else:
         y = x + gaussian_noise(sigma=sigma, size=x.size)
-    I = Identity(y.size)
-    return (I, y, sigma, cl)
+    i_matrix = Identity(y.size)
+    return (i_matrix, y, sigma, cl)
 
 
 def _measure(
@@ -205,8 +204,8 @@ def _measure(
         y = x
     else:
         y = x + gaussian_noise(sigma=sigma, size=x.size)
-    Q = sparse.eye(x.size)
-    return (Q, y, sigma, proj)
+    q_matrix = sparse.eye(x.size)
+    return (q_matrix, y, sigma, proj)
 
 
 def measure(
@@ -244,13 +243,16 @@ def measure(
         weights = np.ones(len(cliques))
     weights = np.array(weights) / np.linalg.norm(weights)
     if n_jobs == 1:
-        measurements = [_measure(*args) for args in zip(
+        measurements = [
+            _measure(*args)
+            for args in zip(
                 itertools.cycle([data]),
                 cliques,
                 weights,
                 itertools.cycle([sigma]),
                 itertools.cycle([public]),
-            )]
+            )
+        ]
     else:
         measurements = [
             meas
@@ -415,7 +417,9 @@ class AIM(Mechanism):
 
         if self.n_jobs == 1:
             for cl in candidates:
-                _, errors[cl], sensitivity[cl] = self._worst_approximated(cl, candidates[cl], answers[cl], model, sigma)
+                _, errors[cl], sensitivity[cl] = self._worst_approximated(
+                    cl, candidates[cl], answers[cl], model, sigma
+                )
         else:
             for cl, err, sens in Pool(self.n_jobs).starmap(
                 self._worst_approximated,
@@ -435,7 +439,7 @@ class AIM(Mechanism):
         else:
             return self.exponential_mechanism(errors, eps, max_sensitivity)
 
-    def _fit(self, data: Dataset, public=False, W=None):
+    def _fit(self, data: Dataset, public=False, workload=None):  # noqa: C901
         """
         Fit the AIM mechanism to the data.
 
@@ -443,8 +447,8 @@ class AIM(Mechanism):
         :type data: Dataset
         :param public: Whether the data is public. Defaults to False.
         :type public: bool, optional
-        :param W: Workload cliques. Defaults to None.
-        :type W: list, optional
+        :param workload: Workload cliques. Defaults to None.
+        :type workload: list, optional
         :return: The dataset and measurements.
         :rtype: tuple
 
@@ -453,19 +457,19 @@ class AIM(Mechanism):
             >>> _fit(data, public=True)
             (data, measurements)
         """
-        if W is None:
-            W = list(itertools.combinations(data.domain, self.degree))
-            W = [cl for cl in W if data.domain.size(cl) <= self.max_cells]
-            W = [(cl, 1.0) for cl in W]
+        if workload is None:
+            workload = list(itertools.combinations(data.domain, self.degree))
+            workload = [cl for cl in workload if data.domain.size(cl) <= self.max_cells]
+            workload = [(cl, 1.0) for cl in workload]
 
         if self.num_marginals is not None:
-            W = [
-                W[i]
-                for i in self.prng.choice(len(W), self.num_marginals, replace=False)
+            workload = [
+                workload[i]
+                for i in self.prng.choice(len(workload), self.num_marginals, replace=False)
             ]
 
         rounds = self.rounds or 16 * len(data.domain)
-        workload = [cl for cl, _ in W]
+        workload = [cl for cl, _ in workload]
         candidates = compile_workload(workload)
 
         oneway = [cl for cl in candidates if len(cl) == 1]
@@ -534,7 +538,7 @@ class AIM(Mechanism):
             )
 
             n = data.domain.size(cl)
-            Q = Identity(n)
+            q_matrix = Identity(n)
             x = data.project(cl).datavector()
             # TODO: figure out to make determinstic
             if public:
@@ -543,7 +547,7 @@ class AIM(Mechanism):
                 y = x + gaussian_noise(sigma=sigma, size=n)
 
             self.cliques.append(cl)
-            measurements.append((Q, y, sigma, cl))
+            measurements.append((q_matrix, y, sigma, cl))
             z = model.project(cl).datavector()
 
             model = self.engine.estimate(measurements)
