@@ -62,7 +62,7 @@ class DomainCompressor:
 
                 # Concatenating Count
                 if not self.zeros_only:
-                    normaliser = np.sq_matrixrt(y_col.shape[0] - sup.sum() + 1)
+                    normaliser = np.sqrt(y_col.shape[0] - sup.sum() + 1)
                     agg_idx = np.arange(y_col.shape[0])[~sup]
                     y_agg = (
                         np.expand_dims(
