@@ -1,0 +1,80 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+        
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        
+    - name: Install dependencies
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: poetry install --with dev
+      
+    - name: Run tests with xdist
+      run: |
+        poetry run pytest tests/ -n auto --junitxml=pytest.xml --cov=src/dpmm --cov-report=xml --cov-report=html --cov-report=term-missing
+        
+    - name: Run flake8 on source code
+      run: |
+        poetry run pytest --flake8 src/
+        
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        
+    - name: Coverage Badge
+      uses: tj-actions/coverage-comment-python@v20
+      if: github.event_name == 'pull_request'
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          pytest.xml
+          coverage.xml
+          htmlcov/
+          
+    - name: Upload coverage to artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: htmlcov/

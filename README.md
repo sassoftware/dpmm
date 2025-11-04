@@ -1,5 +1,8 @@
 # _dpmm_: Differentially Private Marginal Models, a Library for Synthetic Tabular Data Generation
 
+![Tests](https://github.com/sassoftware/dpmm/workflows/Test%20Suite/badge.svg)
+[![codecov](https://codecov.io/gh/sassoftware/dpmm/branch/main/graph/badge.svg)](https://codecov.io/gh/sassoftware/dpmm)
+
 
 ## Overview
 
