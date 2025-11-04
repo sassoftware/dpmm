@@ -4,5 +4,6 @@ exclude =
     .git,
     __pycache__,
     build,
-    dist
+    dist,
+    __init__.py
 max-complexity = 10
