@@ -11,9 +11,10 @@ permissions:
   pull-requests: write
 
 jobs:
-  test:
+  setup:
     runs-on: ubuntu-latest
-    
+    outputs:
+      cache-hit: ${{ steps.cached-poetry-dependencies.outputs.cache-hit }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -40,14 +41,95 @@ jobs:
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --with dev
+
+  tests:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
       
-    - name: Run tests with xdist
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+        
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        
+    - name: Load cached venv
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        
+    - name: Install dependencies
+      if: needs.setup.outputs.cache-hit != 'true'
+      run: poetry install --with dev
+      
+    - name: Run tests with xdist and coverage
       run: |
         poetry run pytest tests/ -n auto --junitxml=pytest.xml --cov=src/dpmm --cov-report=xml --cov-report=html --cov-report=term-missing
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          pytest.xml
+          coverage.xml
+          htmlcov/
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+        
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        
+    - name: Load cached venv
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        
+    - name: Install dependencies
+      if: needs.setup.outputs.cache-hit != 'true'
+      run: poetry install --with dev
         
     - name: Run flake8 on source code
       run: |
         poetry run pytest --flake8 src/
+
+  coverage:
+    runs-on: ubuntu-latest
+    needs: tests
+    if: always()
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download test results
+      uses: actions/download-artifact@v4
+      with:
+        name: test-results
         
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
@@ -63,16 +145,6 @@ jobs:
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: |
-          pytest.xml
-          coverage.xml
-          htmlcov/
-          
     - name: Upload coverage to artifacts
       uses: actions/upload-artifact@v4
       with:
