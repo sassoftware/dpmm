@@ -58,7 +58,7 @@ jobs:
         fail_ci_if_error: false
         
     - name: Coverage Badge
-      uses: tj-actions/coverage-comment-python@v20
+      uses: py-cov-action/python-coverage-comment-action@v3
       if: github.event_name == 'pull_request'
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
