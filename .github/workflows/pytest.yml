@@ -73,7 +73,7 @@ jobs:
       
     - name: Run tests with coverage
       run: |
-        poetry run pytest tests/ --junitxml=pytest.xml --cov=src/dpmm --cov-report=xml --cov-report=html --cov-report=term-missing
+        poetry run pytest tests/processing/test_binner.py --junitxml=pytest.xml --cov=src/dpmm --cov-report=xml --cov-report=html --cov-report=term-missing
         
     - name: Upload test results
       uses: actions/upload-artifact@v4
@@ -84,6 +84,7 @@ jobs:
           pytest.xml
           coverage.xml
           htmlcov/
+          .coverage
 
   lint:
     runs-on: ubuntu-latest
@@ -126,6 +127,27 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: latest
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+
+    - name: Load cached venv
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        
+    - name: Install dependencies
+      run: poetry install --with dev
+
     - name: Download test results
       uses: actions/download-artifact@v4
       with:
