@@ -73,7 +73,7 @@ jobs:
       
     - name: Run tests with coverage
       run: |
-        poetry run pytest tests/processing/test_binner.py --junitxml=pytest.xml --cov=src/dpmm --cov-report=xml --cov-report=html --cov-report=term-missing
+        poetry run pytest tests/ --junitxml=pytest.xml --cov=src/dpmm --cov-report=xml --cov-report=html --cov-report=term-missing
         
     - name: Coverage Badge
       uses: orgoro/coverage@v3.2
