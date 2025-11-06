@@ -119,24 +119,24 @@ class FactoredInference:
             len(m) == 4 for m in measurements
         ), "each measurement must be a 4-tuple (Q, y, noise,proj)"
         ans = []
-        for Q, y, noise, proj in measurements:
+        for q_matrix, y, noise, proj in measurements:
             assert (
-                Q is None or Q.shape[0] == y.size
-            ), "shapes of Q and y are not compatible"
+                q_matrix is None or q_matrix.shape[0] == y.size
+            ), "shapes of q_matrix and y are not compatible"
             if type(proj) is list:
                 proj = tuple(proj)
             if type(proj) is not tuple:
                 proj = (proj,)
-            if Q is None:
-                Q = sparse.eye(self.domain.size(proj))
+            if q_matrix is None:
+                q_matrix = sparse.eye(self.domain.size(proj))
             assert np.isscalar(noise), "noise must be a real value, given " + str(noise)
             assert all(a in self.domain for a in proj), (
                 str(proj) + " not contained in domain"
             )
-            assert Q.shape[1] == self.domain.size(
+            assert q_matrix.shape[1] == self.domain.size(
                 proj
-            ), "shapes of Q and proj are not compatible"
-            ans.append((Q, y, noise, proj))
+            ), "shapes of q_matrix and proj are not compatible"
+            ans.append((q_matrix, y, noise, proj))
         return ans
 
     def interior_gradient(
@@ -165,17 +165,16 @@ class FactoredInference:
         self._setup(measurements, total)
         # what are c and sigma?  For now using 1
         model = self.model
-        domain, cliques, total = model.domain, model.cliques, model.total
-        L = self._lipschitz(measurements) if lipschitz is None else lipschitz
+        _, _, total = model.domain, model.cliques, model.total
+        l_meas = self._lipschitz(measurements) if lipschitz is None else lipschitz
         if self.log:
-            print("Lipchitz constant:", L)
+            print("Lipchitz constant:", l_meas)
 
         theta = model.potentials
         x = y = z = model.belief_propagation(theta)
-        c0 = c
-        l = sigma / L
-        for k in range(1, self.iters + 1):
-            a = (np.sqrt((c * l) ** 2 + 4 * c * l) - l * c) / 2
+        l_sigma = sigma / l_meas
+        for _ in range(1, self.iters + 1):
+            a = (np.sqrt((c * l_sigma) ** 2 + 4 * c * l_sigma) - l_sigma * c) / 2
             y = (1 - a) * x + a * z
             c *= 1 - a
             _, g = self._marginal_loss(y)
@@ -211,9 +210,9 @@ class FactoredInference:
         self._setup(measurements, total)
         model = self.model
         domain, cliques, total = model.domain, model.cliques, model.total
-        L = self._lipschitz(measurements) if lipschitz is None else lipschitz
-        print("Lipchitz constant:", L)
-        if L == 0:
+        l_meas = self._lipschitz(measurements) if lipschitz is None else lipschitz
+        print("Lipchitz constant:", l_meas)
+        if l_meas == 0:
             return
 
         theta = model.potentials
@@ -228,7 +227,7 @@ class FactoredInference:
             u = (1 - c) * w + c * v
             _, g = self._marginal_loss(u)  # not interested in loss of this query point
             gbar = (1 - c) * gbar + c * g
-            theta = -t * (t + 1) / (4 * L + beta) / self.model.total * gbar
+            theta = -t * (t + 1) / (4 * l_meas + beta) / self.model.total * gbar
             v = model.belief_propagation(theta)
             w = (1 - c) * w + c * v
 
@@ -260,7 +259,7 @@ class FactoredInference:
 
         self._setup(measurements, total)
         model = self.model
-        cliques, theta = model.cliques, model.potentials
+        theta = model.potentials
         mu = model.belief_propagation(theta)
         ans = self._marginal_loss(mu)
         if ans[0] == 0:
@@ -271,23 +270,23 @@ class FactoredInference:
         nols = stepsize is not None
         if np.isscalar(stepsize):
             alpha = float(stepsize)
-            stepsize = lambda t: alpha
+            stepsize = alpha
         if stepsize is None:
             alpha = 1.0 / self.model.total**2
-            stepsize = lambda t: 2.0 * alpha
+            stepsize = 2.0 * alpha
 
         for t in range(1, self.iters + 1):
             if callback is not None:
                 callback(mu)
             omega, nu = theta, mu
-            curr_loss, dL = ans
-            # print('Gradient Norm', np.sqrt(dL.dot(dL)))
-            alpha = stepsize(t)
-            for i in range(25):
-                theta = omega - alpha * dL
+            curr_loss, d_l = ans
+            # print('Gradient Norm', np.sqrt(d_l.dot(d_l)))
+            alpha = stepsize
+            for _ in range(25):
+                theta = omega - alpha * d_l
                 mu = model.belief_propagation(theta)
                 ans = self._marginal_loss(mu)
-                if nols or curr_loss - ans[0] >= 0.5 * alpha * dL.dot(nu - mu):
+                if nols or curr_loss - ans[0] >= 0.5 * alpha * d_l.dot(nu - mu):
                     break
                 alpha *= 0.5
 
@@ -315,22 +314,22 @@ class FactoredInference:
         for cl in marginals:
             mu = marginals[cl]
             gradient[cl] = self.Factor.zeros(mu.domain)
-            for Q, y, noise, proj in self.groups[cl]:
+            for q_matrix, y, noise, proj in self.groups[cl]:
                 c = 1.0 / noise
                 mu2 = mu.project(proj)
                 x = mu2.datavector()
-                diff = c * (Q @ x - y)
+                diff = c * (q_matrix @ x - y)
                 if metric == "L1":
                     loss += abs(diff).sum()
                     sign = diff.sign() if hasattr(diff, "sign") else np.sign(diff)
-                    grad = c * (Q.T @ sign)
+                    grad = c * (q_matrix.T @ sign)
                 else:
                     loss += 0.5 * (diff @ diff)
-                    grad = c * (Q.T @ diff)
+                    grad = c * (q_matrix.T @ diff)
                 gradient[cl] += self.Factor(mu2.domain, grad)
         return float(loss), CliqueVector(gradient)
 
-    def _setup(self, measurements, total):
+    def _setup(self, measurements, total):  # noqa: C901
         """Perform necessary setup for running estimation algorithms
 
         1. If total is None, find the minimum variance unbiased estimate for total and use that
@@ -342,10 +341,10 @@ class FactoredInference:
             # find the minimum variance estimate of the total given the measurements
             variances = np.array([])
             estimates = np.array([])
-            for Q, y, noise, proj in measurements:
-                o = np.ones(Q.shape[1])
-                v = lsmr(Q.T, o, atol=0, btol=0)[0]
-                if np.allclose(Q.T.dot(v), o):
+            for q_matrix, y, noise, proj in measurements:
+                o = np.ones(q_matrix.shape[1])
+                v = lsmr(q_matrix.T, o, atol=0, btol=0)[0]
+                if np.allclose(q_matrix.T.dot(v), o):
                     variances = np.append(variances, noise**2 * np.dot(v, v))
                     estimates = np.append(estimates, np.dot(v, y))
             if estimates.size == 0:
@@ -380,22 +379,22 @@ class FactoredInference:
         cliques = self.model.cliques
         # self.groups = { cl : [] for cl in cliques }
         self.groups = defaultdict(list)
-        for Q, y, noise, proj in measurements:
+        for q_matrix, y, noise, proj in measurements:
             if self.backend == "torch":
                 import torch
 
                 device = self.Factor.device
                 y = torch.tensor(y, dtype=torch.float32, device=device)
-                if isinstance(Q, np.ndarray):
-                    Q = torch.tensor(Q, dtype=torch.float32, device=device)
-                elif sparse.issparse(Q):
-                    Q = Q.tocoo()
-                    idx = torch.LongTensor([Q.row, Q.col])
-                    vals = torch.FloatTensor(Q.data)
-                    Q = torch.sparse.FloatTensor(idx, vals).to(device)
+                if isinstance(q_matrix, np.ndarray):
+                    q_matrix = torch.tensor(q_matrix, dtype=torch.float32, device=device)
+                elif sparse.issparse(q_matrix):
+                    q_matrix = q_matrix.tocoo()
+                    idx = torch.LongTensor([q_matrix.row, q_matrix.col])
+                    vals = torch.FloatTensor(q_matrix.data)
+                    q_matrix = torch.sparse.FloatTensor(idx, vals).to(device)
 
                 # else Q is a Linear Operator, must be compatible with torch
-            m = (Q, y, noise, proj)
+            m = (q_matrix, y, noise, proj)
             for cl in sorted(cliques, key=model.domain.size):
                 # (Q, y, noise, proj) tuple
                 if set(proj) <= set(cl):
@@ -408,14 +407,14 @@ class FactoredInference:
         Note: must be called after _setup
         """
         eigs = {cl: 0.0 for cl in self.model.cliques}
-        for Q, _, noise, proj in measurements:
+        for q_matrix, _, noise, proj in measurements:
             for cl in self.model.cliques:
                 if set(proj) <= set(cl):
                     n = self.domain.size(cl)
                     p = self.domain.size(proj)
-                    Q = aslinearoperator(Q)
-                    Q.dtype = np.dtype(Q.dtype)
-                    eig = eigsh(Q.H * Q, 1)[0][0]
+                    q_matrix = aslinearoperator(q_matrix)
+                    q_matrix.dtype = np.dtype(q_matrix.dtype)
+                    eig = eigsh(q_matrix.H * q_matrix, 1)[0][0]
                     eigs[cl] += eig * n / p / noise**2
                     break
         return max(eigs.values())

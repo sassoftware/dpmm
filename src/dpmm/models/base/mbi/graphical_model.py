@@ -94,18 +94,18 @@ class GraphicalModel:
         :return: the vector of query answers
         """
         assert all(
-            M.shape[1] == n for M, n in zip(matrices, self.domain.shape)
+            m_matrix.shape[1] == n for m_matrix, n in zip(matrices, self.domain.shape)
         ), "matrices must conform to the shape of the domain"
-        logZ = self.belief_propagation(self.potentials, logZ=True)
+        log_z = self.belief_propagation(self.potentials, log_z=True)
         factors = [self.potentials[cl].exp() for cl in self.cliques]
-        Factor = type(factors[0])  # infer the type of the factors
+        factor_type = type(factors[0])  # infer the type of the factors
         elim = self.domain.attrs
-        for attr, Q in zip(elim, matrices):
-            d = Domain(["%s-answer" % attr, attr], Q.shape)
-            factors.append(Factor(d, Q))
+        for attr, q_matrix in zip(elim, matrices):
+            d = Domain(["%s-answer" % attr, attr], q_matrix.shape)
+            factors.append(factor_type(d, q_matrix))
         result = variable_elimination(factors, elim)
         result = result.transpose(["%s-answer" % a for a in elim])
-        return result.datavector(flatten=False) * self.total / np.exp(logZ)
+        return result.datavector(flatten=False) * self.total / np.exp(log_z)
 
     def calculate_many_marginals(self, projections):
         """Calculates marginals for all the projections in the list using
@@ -121,31 +121,31 @@ class GraphicalModel:
         self.marginals = self.belief_propagation(self.potentials)
         sep = self.sep_axes
         neighbors = self.neighbors
-        # first calculate P(Cj | Ci) for all neighbors Ci, Cj
+        # first calculate P(c_j | c_i) for all neighbors c_i, c_j
         conditional = {}
-        for Ci in neighbors:
-            for Cj in neighbors[Ci]:
-                Sij = sep[(Cj, Ci)]
-                Z = self.marginals[Cj]
-                conditional[(Cj, Ci)] = Z / Z.project(Sij)
+        for c_i in neighbors:
+            for c_j in neighbors[c_i]:
+                s_ij = sep[(c_j, c_i)]
+                z_marginal = self.marginals[c_j]
+                conditional[(c_j, c_i)] = z_marginal / z_marginal.project(s_ij)
 
         # now iterate through pairs of cliques in order of distance
         pred, dist = nx.floyd_warshall_predecessor_and_distance(
             self.junction_tree.tree, weight=False
         )
         results = {}
-        for Ci, Cj in sorted(
+        for c_i, c_j in sorted(
             itertools.combinations(self.cliques, 2), key=lambda X: dist[X[0]][X[1]]
         ):
-            Cl = pred[Ci][Cj]
-            Y = conditional[(Cj, Cl)]
-            if Cl == Ci:
-                X = self.marginals[Ci]
-                results[(Ci, Cj)] = results[(Cj, Ci)] = X * Y
+            c_l = pred[c_i][c_j]
+            y = conditional[(c_j, c_l)]
+            if c_l == c_i:
+                x = self.marginals[c_i]
+                results[(c_i, c_j)] = results[(c_j, c_i)] = x * y
             else:
-                X = results[(Ci, Cl)]
-                S = set(Cl) - set(Ci) - set(Cj)
-                results[(Ci, Cj)] = results[(Cj, Ci)] = (X * Y).sum(S)
+                x = results[(c_i, c_l)]
+                s = set(c_l) - set(c_i) - set(c_j)
+                results[(c_i, c_j)] = results[(c_j, c_i)] = (x * y).sum(s)
 
         results = {
             self.domain.canonical(key[0] + key[1]): results[key] for key in results
@@ -170,13 +170,13 @@ class GraphicalModel:
         wgt = ans.domain.size() / self.domain.size()
         return ans.expand(self.domain).datavector(flatten) * wgt * self.total
 
-    def belief_propagation(self, potentials, logZ=False):
+    def belief_propagation(self, potentials, log_z=False):
         """Compute the marginals of the graphical model with given parameters
 
         Note this is an efficient, numerically stable implementation of belief propagation
 
         :param potentials: the (log-space) parameters of the graphical model
-        :param logZ: flag to return logZ instead of marginals
+        :param log_z: flag to return log_z instead of marginals
         :return marginals: the marginals of the graphical model
         """
         beliefs = {cl: potentials[cl].copy() for cl in potentials}
@@ -191,12 +191,12 @@ class GraphicalModel:
             beliefs[j] += messages[(i, j)]
 
         cl = self.cliques[0]
-        if logZ:
+        if log_z:
             return beliefs[cl].logsumexp()
 
-        logZ = beliefs[cl].logsumexp()
+        log_z = beliefs[cl].logsumexp()
         for cl in self.cliques:
-            beliefs[cl] += np.log(self.total) - logZ
+            beliefs[cl] += np.log(self.total) - log_z
             beliefs[cl] = beliefs[cl].exp(out=beliefs[cl])
 
         return CliqueVector(beliefs)
@@ -229,7 +229,7 @@ class GraphicalModel:
             marginals[cl] = Factor(dom, x)
         self.potentials = self.mle(marginals)
 
-    def synthetic_data(
+    def synthetic_data(  # noqa: C901
         self, rows=None, condition_records: pd.DataFrame = None, method="round"
     ):
         """Generate synthetic tabular data from the distribution.

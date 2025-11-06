@@ -14,7 +14,6 @@ from typing import Dict, Self, Tuple, Optional
 import joblib
 import networkx as nx
 import numpy as np
-import pandas as pd
 from disjoint_set import DisjointSet
 from numpy.random import RandomState
 from scipy.special import logsumexp
@@ -23,7 +22,6 @@ from dpmm.models.base.graphical import GraphicalGenerativeModel
 from dpmm.models.base.mbi import Dataset, Domain, FactoredInference, GraphicalModel
 from dpmm.models.base.mechanisms import cdp_rho
 from dpmm.models.base.memory import clique_size, model_size
-from dpmm.models.base.utils import gaussian_noise
 from dpmm.utils import to_path
 from dpmm.models.base.mechanisms import Mechanism
 
@@ -152,7 +150,7 @@ class MST(Mechanism):
 
         return data, log1 + log2
 
-    def select(
+    def select(  # noqa: C901
         self,
         data: Dataset,
         rho: float,
@@ -182,34 +180,35 @@ class MST(Mechanism):
         weights = {}
         candidates = list(itertools.combinations(data.domain.attrs, 2))
         if self.n_jobs > 1:
-            for a, b, weight, model_size in Pool(self.n_jobs).starmap(
+            for a, b, weight, m_size in Pool(self.n_jobs).starmap(
                 compute_weight,
                 zip(itertools.cycle([est]), itertools.cycle([data]), candidates),
             ):
                 weights[a, b] = weight
-                self.model_size += model_size
+                self.model_size += m_size
                 if self.max_model_size is not None:
                     if self.model_size > self.max_model_size:
                         break
         else:
-            for compute_args in zip(itertools.cycle([est]), itertools.cycle([data]), candidates):
-                a, b, weight, model_size = compute_weight(*compute_args)
+            for compute_args in zip(
+                itertools.cycle([est]), itertools.cycle([data]), candidates
+            ):
+                a, b, weight, m_size = compute_weight(*compute_args)
                 weights[a, b] = weight
-                self.model_size += model_size
+                self.model_size += m_size
                 if self.max_model_size is not None:
                     if self.model_size > self.max_model_size:
                         break
-                
 
-        T = nx.Graph()
-        T.add_nodes_from(data.domain.attrs)
+        graph = nx.Graph()
+        graph.add_nodes_from(data.domain.attrs)
         ds = DisjointSet()
 
         for e in cliques:
-            T.add_edge(*e)
+            graph.add_edge(*e)
             ds.union(*e)
 
-        r = len(list(nx.connected_components(T)))
+        r = len(list(nx.connected_components(graph)))
         epsilon = np.sqrt(8 * rho / (r - 1))
         for i in range(r - 1):
             candidates = [e for e in candidates if not ds.connected(*e)]
@@ -220,10 +219,10 @@ class MST(Mechanism):
                 idx = self.exponential_mechanism(wgts, epsilon, sensitivity=1.0)
 
             e = candidates[idx]
-            T.add_edge(*e)
+            graph.add_edge(*e)
             ds.union(*e)
 
-        return list(T.edges)
+        return list(graph.edges)
 
     def exponential_mechanism(
         self, q: np.ndarray, eps: float, sensitivity: float, monotonic: bool = False

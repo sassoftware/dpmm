@@ -21,10 +21,10 @@ class DomainCompressor:
         self.supports = {}
         return [self.fit_measure(measure, flatten=flatten) for measure in measurements]
 
-    def fit_measure(self, measure, flatten=False):
-        Q, y, sigma, proj = measure
+    def fit_measure(self, measure, flatten=False):  # noqa: C901
+        q_matrix, y, sigma, proj = measure
 
-        I2 = np.ones(y.size)
+        i2_matrix = np.ones(y.size)
 
         for axis, col in enumerate(proj):
             y_col = np.sum(y, axis=tuple([ax for ax in range(len(proj)) if ax != axis]))
@@ -76,16 +76,16 @@ class DomainCompressor:
                     y = y_new
 
                 # Correct Weight
-                I2 = np.ones(y.size)
+                i2_matrix = np.ones(y.size)
                 if len(proj) == 1 and not self.zeros_only:
-                    I2[-1] = 1.0 / normaliser
+                    i2_matrix[-1] = 1.0 / normaliser
 
-        Q = sparse.diags(I2)
+        q_matrix = sparse.diags(i2_matrix)
 
         if flatten:
             y = y.flatten()
 
-        return (Q, y, sigma, proj)
+        return (q_matrix, y, sigma, proj)
 
     def transform_col(self, df, col):
         as_df = isinstance(df, pd.DataFrame)

@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 
 
-
 class CallBack:
     """A CallBack is a function called after every iteration of an iterative optimization procedure
     It is useful for tracking loss and other metrics over time.
@@ -50,11 +49,6 @@ class Logger(CallBack):
         self.idx = 0
 
     def setup(self):
-        model = self.engine.model
-        total = sum(model.domain.size(cl) for cl in model.cliques)
-        # print('Total clique size:', total, flush=True)
-        # cl = max(model.cliques, key=lambda cl: model.domain.size(cl))
-        # print('Maximal clique', cl, model.domain.size(cl), flush=True)
         cols = ["iteration", "time", "l1_loss", "l2_loss", "feasibility"]
         if self.true_answers is not None:
             cols.append("variation")
@@ -63,12 +57,12 @@ class Logger(CallBack):
 
     def variational_distances(self, marginals):
         errors = []
-        for Q, y, proj in self.true_answers:
+        for q_matrix, y, proj in self.true_answers:
             for cl in marginals:
                 if set(proj) <= set(cl):
                     mu = marginals[cl].project(proj)
                     x = mu.values.flatten()
-                    diff = Q.dot(x) - y
+                    diff = q_matrix.dot(x) - y
                     err = 0.5 * np.abs(diff).sum() / y.sum()
                     errors.append(err)
                     break
@@ -90,7 +84,7 @@ class Logger(CallBack):
                     count += 1
         try:
             return ans / count
-        except:
+        except Exception:
             return 0
 
     def run(self, marginals):

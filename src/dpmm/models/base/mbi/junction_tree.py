@@ -51,10 +51,10 @@ class JunctionTree:
             for m2 in messages:
                 if m1[1] == m2[0] and m1[0] != m2[1]:
                     edges.add((m1, m2))
-        G = nx.DiGraph()
-        G.add_nodes_from(messages)
-        G.add_edges_from(edges)
-        return list(nx.topological_sort(G))
+        digraph = nx.DiGraph()
+        digraph.add_nodes_from(messages)
+        digraph.add_edges_from(edges)
+        return list(nx.topological_sort(digraph))
 
     def separator_axes(self):
         return {(i, j): tuple(set(i) & set(j)) for i, j in self.mp_order()}

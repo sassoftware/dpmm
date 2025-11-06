@@ -24,13 +24,13 @@ class Dataset:
         self.weights = weights
 
     @staticmethod
-    def synthetic(domain, N):
+    def synthetic(domain, n):
         """Generate synthetic data conforming to the given domain
 
         :param domain: The domain object
         :param N: the number of individuals
         """
-        arr = [np.random.randint(low=0, high=n, size=N) for n in domain.shape]
+        arr = [np.random.randint(low=0, high=n, size=n) for n in domain.shape]
         values = np.array(arr).T
         df = pd.DataFrame(values, columns=domain.attrs)
         return Dataset(df, domain)

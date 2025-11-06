@@ -1,7 +1,7 @@
 """
-    Code from :
-    - https://github.com/opendp/smartnoise-sdk/blob/10b152700749aa7dbe85f73d6382e6899ea256f6/synth/snsynth/transform/mechanism.py
-    - https://desfontain.es/thesis/Usability.html
+Code from :
+- https://github.com/opendp/smartnoise-sdk/blob/10b152700749aa7dbe85f73d6382e6899ea256f6/synth/snsynth/transform/mechanism.py
+- https://desfontain.es/thesis/Usability.html
 
 """
 
@@ -20,7 +20,9 @@ STD_DT = pd.to_datetime("01.01.1990").to_numpy()
 STD_TD = pd.to_timedelta("1 hour").to_numpy()
 
 
-def approx_bounds(vals: Union[List[float], np.ndarray], epsilon: float) -> Tuple[Optional[float], Optional[float]]:
+def approx_bounds(
+    vals: Union[List[float], np.ndarray], epsilon: float
+) -> Tuple[Optional[float], Optional[float]]:
     """
     Estimate the minimum and maximum values of a list of values.
     from: https://desfontain.es/thesis/Usability.html#usability-u-ding-
@@ -92,7 +94,9 @@ def approx_bounds(vals: Union[List[float], np.ndarray], epsilon: float) -> Tuple
     return (ll, uu)
 
 
-def optimal_n_bins(series: pd.Series, upper: Optional[int] = None, epsilon: Optional[float] = None) -> int:
+def optimal_n_bins(
+    series: pd.Series, upper: Optional[int] = None, epsilon: Optional[float] = None
+) -> int:
     """Calculate the optimal number of bins for a histogram.
 
     :param series: A pandas Series containing the data.

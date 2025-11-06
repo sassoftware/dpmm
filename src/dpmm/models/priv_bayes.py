@@ -1,5 +1,5 @@
 # A generative model training algorithm based on
-# "PrivBayes: Private Data Release via Bayesian Networks" 
+# "PrivBayes: Private Data Release via Bayesian Networks"
 # by Jun Zhang1 Graham Cormode2 Cecilia M. Procopiuc3 Divesh Srivastava3 Xiaokui Xiao1
 # combined with the pgm framework by Ryan McKenna, Gerome Miklau, Daniel Sheldon
 # code inspired from : https://github.com/ryan112358/private-pgm/blob/1da21c8b38149b05f1385b8e54116568b700b4fa/mechanisms/mst.py
@@ -225,7 +225,7 @@ class PrivBayes(Mechanism):
         self.n_iters = n_iters
         self.max_candidates = max_candidates
 
-    def select(self, data: Dataset, public=False) -> list:
+    def select(self, data: Dataset, public=False) -> list:  # noqa: C901
         """
         Select cliques based on mutual information.
 
@@ -275,11 +275,15 @@ class PrivBayes(Mechanism):
                         <= size_per_node
                     ]
                 if len(col_candidates) == 0:
-                    min_size = min([
-                        clique_size(data, clique=((candidate) + (col,)))
-                        for candidate in col_candidates
-                    ])
-                    warn(f"No combination respects the clique size limitation, will be skipped. Min Size : {min_size} | expected : {size_per_node}")
+                    min_size = min(
+                        [
+                            clique_size(data, clique=((candidate) + (col,)))
+                            for candidate in col_candidates
+                        ]
+                    )
+                    warn(
+                        f"No combination respects the clique size limitation, will be skipped. Min Size : {min_size} | expected : {size_per_node}"
+                    )
                     col_candidates = list(combs)
 
                 if self.max_candidates is not None:
@@ -300,9 +304,7 @@ class PrivBayes(Mechanism):
                     [mi_score for mi_score in Pool(self.n_jobs).starmap(mi, candidates)]
                 )
             else:
-                mi_scores = np.array(
-                    [mi(*candidate) for candidate in candidates]
-                )
+                mi_scores = np.array([mi(*candidate) for candidate in candidates])
 
             if public:
                 selected = np.argmax(mi_scores)

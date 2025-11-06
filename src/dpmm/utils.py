@@ -15,6 +15,7 @@ def to_path(func: Callable) -> Callable:
         def save_file(self, path: Path):
             path.write_text("Hello, World!")
     """
+
     def new_func(self: Any, path: Union[str, Path]) -> Any:
         return func(self, Path(path))
 

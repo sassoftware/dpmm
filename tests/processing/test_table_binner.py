@@ -256,4 +256,43 @@ def test_deterministic_behavior(
     pd.testing.assert_frame_equal(inverse_transformed_df_1, inverse_transformed_df_2)
 
 
+def test_domain():
+    """
+    Test that code supports when the training data both categorical and numerical is smaller than the provided domain but the inverse transform data provided covers the full domain.
+    """
+    df = pd.DataFrame(
+        {
+            "num_col": [1, 2, 3, 4, 5],
+            "cat_col": ["A", "B", "A", "B", "C"],
+        }
+    )
+    df.cat_col = df.cat_col.astype("category")
+
+    domain = {
+        "num_col": {"lower": 0, "upper": 10},
+        "cat_col": {"categories": ["A", "B", "C", "D"]},
+    }
+
+    table_binner = TableBinner(
+        binner_type="uniform",
+        binner_settings={"n_bins": 5},
+        domain=domain,
+    )
+
+    table_binner.fit(df, public=True)
+
+    inverse_df = pd.DataFrame(
+        {
+            "num_col": [0, 2, 4, 10],
+            "cat_col": ["A", "B", "C", "D"],
+        }
+    )
+
+    transformed_inverse_df = table_binner.transform(inverse_df)
+    recovered_inverse_df = table_binner.inverse_transform(transformed_inverse_df)
+
+    assert recovered_inverse_df["num_col"].between(0, 10).all()
+    assert set(recovered_inverse_df["cat_col"].unique()).issubset(
+        set(domain["cat_col"]["categories"])
+    )
 

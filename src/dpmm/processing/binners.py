@@ -154,7 +154,9 @@ class Binner:
         is_zero = np.any(bin_is_in_interval, axis=1)
         return np.arange(len(is_zero))[is_zero]
 
-    def get_bounds(self, arr: np.ndarray, recompute: bool = False, epsilon: Optional[float] = None) -> Tuple[float, float]:
+    def get_bounds(
+        self, arr: np.ndarray, recompute: bool = False, epsilon: Optional[float] = None
+    ) -> Tuple[float, float]:
         """
         Compute or retrieve the bounds of the data.
 
@@ -167,7 +169,7 @@ class Binner:
 
             bounds = binner.get_bounds(arr, epsilon=0.1)
         """
-        
+
         if self.has_bounds and not recompute:
             min_, max_ = self.lower, self.upper
         elif epsilon is None:
@@ -471,9 +473,9 @@ class PrivTreeBinner(UniformBinner):
         rnd: Optional[RandomState] = None,
     ):
         """
-        Initialize the PrivTreeBinner. 
+        Initialize the PrivTreeBinner.
         Based on the (PrivTree Algorithm)[https://arxiv.org/pdf/1601.03229].
-        
+
 
         :param n_bins: Number of bins.
         :param enforce_bins: Whether to enforce the number of bins.
@@ -502,7 +504,9 @@ class PrivTreeBinner(UniformBinner):
         self.decay = decay
         self.scale = None
 
-    def priv_tree(self, data: np.ndarray, eps: Optional[float] = None) -> Tuple[Dict, Dict, Dict, Dict, List[str]]:
+    def priv_tree(
+        self, data: np.ndarray, eps: Optional[float] = None
+    ) -> Tuple[Dict, Dict, Dict, Dict, List[str]]:
         """
         Builds bin by splitting the data into a binary tree structure.
         The tree is built by recursively splitting the data into two halves
