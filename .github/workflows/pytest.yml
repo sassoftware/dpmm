@@ -129,15 +129,51 @@ jobs:
   coverage:
     runs-on: datamakerlnx001
     needs: tests
-    if: always()
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        persist-credentials: true
 
     - name: Download test results
       uses: actions/download-artifact@v4
       with:
         name: test-results
+    
+    - name: Extract coverage percentage
+      id: coverage
+      run: |
+        COVERAGE=$(python -c "import xml.etree.ElementTree as ET; tree = ET.parse('coverage.xml'); root = tree.getroot(); print(f\"{float(root.attrib['line-rate']) * 100:.1f}\")")
+        echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+        echo "Coverage: $COVERAGE%"
+    
+    - name: Create badges directory
+      run: mkdir -p .github/badges
+        
+    - name: Generate coverage badge
+      run: |
+        COVERAGE=${{ steps.coverage.outputs.percentage }}
+        COLOR="red"
+        if (( $(echo "$COVERAGE >= 90" | bc -l) )); then
+          COLOR="brightgreen"
+        elif (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+          COLOR="green"
+        elif (( $(echo "$COVERAGE >= 70" | bc -l) )); then
+          COLOR="yellow"
+        elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+          COLOR="orange"
+        fi
+        
+        curl -s "https://img.shields.io/badge/coverage-${COVERAGE}%25-${COLOR}" > .github/badges/coverage.svg
+        
+    - name: Commit coverage badge
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add .github/badges/coverage.svg
+        git diff --staged --quiet || git commit -m "Update coverage badge [skip ci]"
+        git push
         
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
