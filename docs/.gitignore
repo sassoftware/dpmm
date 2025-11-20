@@ -1,0 +1,7 @@
+# Sphinx build outputs
+_build/
+_autosummary/
+
+# Python cache
+__pycache__/
+*.pyc
