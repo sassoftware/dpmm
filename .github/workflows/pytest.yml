@@ -12,17 +12,12 @@ permissions:
 
 jobs:
   setup:
-    runs-on: datamakerlnx001
+    runs-on: self-hosted
     outputs:
       cache-hit: ${{ steps.cached-poetry-dependencies.outputs.cache-hit }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
         
     - name: Install Poetry
       uses: snok/install-poetry@v1
@@ -36,23 +31,18 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-python-${{ hashFiles('**/poetry.lock') }}
         
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --with dev
 
   tests:
-    runs-on: datamakerlnx001
+    runs-on: self-hosted
     needs: setup
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
         
     - name: Install Poetry
       uses: snok/install-poetry@v1
@@ -65,15 +55,15 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-python-${{ hashFiles('**/poetry.lock') }}
         
     - name: Install dependencies
       if: needs.setup.outputs.cache-hit != 'true'
       run: poetry install --with dev
       
-    - name: Run tests with coverage
+    - name: Run tests with coverage (distributed)
       run: |
-        poetry run pytest tests/ --junitxml=pytest.xml --cov=src/dpmm --cov-report=xml --cov-report=html --cov-report=term-missing
+        poetry run pytest tests/ -n auto --junitxml=pytest.xml --cov=src/dpmm --cov-report=xml --cov-report=html --cov-report=term-missing
         
     - name: Coverage Badge
       uses: orgoro/coverage@v3.2
@@ -94,16 +84,11 @@ jobs:
           .coverage
 
   lint:
-    runs-on: datamakerlnx001
+    runs-on: self-hosted
     needs: setup
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
         
     - name: Install Poetry
       uses: snok/install-poetry@v1
@@ -116,7 +101,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-python-${{ hashFiles('**/poetry.lock') }}
         
     - name: Install dependencies
       if: needs.setup.outputs.cache-hit != 'true'
@@ -127,17 +112,53 @@ jobs:
         poetry run pytest --flake8 src/
 
   coverage:
-    runs-on: datamakerlnx001
+    runs-on: self-hosted
     needs: tests
-    if: always()
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        persist-credentials: true
 
     - name: Download test results
       uses: actions/download-artifact@v4
       with:
         name: test-results
+    
+    - name: Extract coverage percentage
+      id: coverage
+      run: |
+        COVERAGE=$(python -c "import xml.etree.ElementTree as ET; tree = ET.parse('coverage.xml'); root = tree.getroot(); print(f\"{float(root.attrib['line-rate']) * 100:.1f}\")")
+        echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+        echo "Coverage: $COVERAGE%"
+    
+    - name: Create badges directory
+      run: mkdir -p .github/badges
+        
+    - name: Generate coverage badge
+      run: |
+        COVERAGE=${{ steps.coverage.outputs.percentage }}
+        COLOR="red"
+        if (( $(echo "$COVERAGE >= 90" | bc -l) )); then
+          COLOR="brightgreen"
+        elif (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+          COLOR="green"
+        elif (( $(echo "$COVERAGE >= 70" | bc -l) )); then
+          COLOR="yellow"
+        elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+          COLOR="orange"
+        fi
+        
+        curl -s "https://img.shields.io/badge/coverage-${COVERAGE}%25-${COLOR}" > .github/badges/coverage.svg
+        
+    - name: Commit coverage badge
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add .github/badges/coverage.svg
+        git diff --staged --quiet || git commit -m "Update coverage badge [skip ci]"
+        git push
         
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
