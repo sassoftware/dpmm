@@ -1,10 +1,14 @@
 name: Test Suite
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -160,13 +164,6 @@ jobs:
         git diff --staged --quiet || git commit -m "Update coverage badge [skip ci]"
         git push
         
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
         
     - name: Upload coverage to artifacts
       uses: actions/upload-artifact@v4
