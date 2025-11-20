@@ -51,6 +51,3 @@ deps/
 # PBR
 AUTHORS
 VERSION
-
-# Poetry
-requirements.txt
