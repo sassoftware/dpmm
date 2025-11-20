@@ -18,11 +18,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
         
     - name: Install Poetry
       uses: snok/install-poetry@v1
@@ -36,7 +31,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-python-${{ hashFiles('**/poetry.lock') }}
         
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
@@ -48,11 +43,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
         
     - name: Install Poetry
       uses: snok/install-poetry@v1
@@ -65,15 +55,15 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-python-${{ hashFiles('**/poetry.lock') }}
         
     - name: Install dependencies
       if: needs.setup.outputs.cache-hit != 'true'
       run: poetry install --with dev
       
-    - name: Run tests with coverage
+    - name: Run tests with coverage (distributed)
       run: |
-        poetry run pytest tests/ --junitxml=pytest.xml --cov=src/dpmm --cov-report=xml --cov-report=html --cov-report=term-missing
+        poetry run pytest tests/ -n auto --junitxml=pytest.xml --cov=src/dpmm --cov-report=xml --cov-report=html --cov-report=term-missing
         
     - name: Coverage Badge
       uses: orgoro/coverage@v3.2
@@ -99,11 +89,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
         
     - name: Install Poetry
       uses: snok/install-poetry@v1
@@ -116,7 +101,7 @@ jobs:
       uses: actions/cache@v3
       with:
         path: .venv
-        key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        key: venv-${{ runner.os }}-python-${{ hashFiles('**/poetry.lock') }}
         
     - name: Install dependencies
       if: needs.setup.outputs.cache-hit != 'true'
