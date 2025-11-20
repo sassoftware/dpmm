@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   setup:
-    runs-on: ubuntu-latest
+    runs-on: datamakerlnx001
     outputs:
       cache-hit: ${{ steps.cached-poetry-dependencies.outputs.cache-hit }}
     steps:
@@ -43,7 +43,7 @@ jobs:
       run: poetry install --with dev
 
   tests:
-    runs-on: ubuntu-latest
+    runs-on: datamakerlnx001
     needs: setup
     steps:
     - name: Checkout code
@@ -94,7 +94,7 @@ jobs:
           .coverage
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: datamakerlnx001
     needs: setup
     steps:
     - name: Checkout code
@@ -127,7 +127,7 @@ jobs:
         poetry run pytest --flake8 src/
 
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: datamakerlnx001
     needs: tests
     if: always()
     steps:
