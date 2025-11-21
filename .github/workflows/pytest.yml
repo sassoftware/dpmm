@@ -5,6 +5,14 @@ on:
     branches: [ "main" ]
   push:
     branches: [ "main" ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'poetry.lock'
+      - '.github/workflows/pytest.yml'
+  push:
+    branches: [ "main" ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -84,7 +92,6 @@ jobs:
         path: |
           pytest.xml
           coverage.xml
-          htmlcov/
           .coverage
 
   lint:
@@ -163,10 +170,3 @@ jobs:
         git add .github/badges/coverage.svg
         git diff --staged --quiet || git commit -m "Update coverage badge [skip ci]"
         git push
-        
-        
-    - name: Upload coverage to artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report
-        path: htmlcov/

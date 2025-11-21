@@ -26,6 +26,7 @@ Thumbs.db
 __pycache__
 
 .coverage*
+htmlcov/
 .eggs/
 .metadata
 .project
