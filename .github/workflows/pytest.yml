@@ -3,12 +3,6 @@ name: Test Suite
 on:
   pull_request:
     branches: [ "main" ]
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'pyproject.toml'
-      - 'poetry.lock'
-      - '.github/workflows/pytest.yml'
   push:
     branches: [ "main" ]
     paths:
@@ -17,6 +11,8 @@ on:
       - 'pyproject.toml'
       - 'poetry.lock'
       - '.github/workflows/pytest.yml'
+  push:
+    branches: [ "main" ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
