@@ -311,6 +311,7 @@ class AIM(Mechanism):
 
     def __init__(
         self,
+        domain: Domain,
         epsilon=1,
         delta=1e-5,
         prng: RandomState = None,
@@ -322,7 +323,6 @@ class AIM(Mechanism):
         max_cells=10000,
         structural_zeros={},
         compress=False,
-        domain=None,
         n_jobs=-1,
     ):
         super().__init__(
@@ -465,7 +465,9 @@ class AIM(Mechanism):
         if self.num_marginals is not None:
             workload = [
                 workload[i]
-                for i in self.prng.choice(len(workload), self.num_marginals, replace=False)
+                for i in self.prng.choice(
+                    len(workload), self.num_marginals, replace=False
+                )
             ]
 
         rounds = self.rounds or 16 * len(data.domain)
@@ -669,17 +671,17 @@ class AIMGM(GraphicalGenerativeModel):
 
     def __init__(
         self,
-        epsilon=1,
-        delta=1e-5,
-        rounds=None,
-        compress=True,
+        domain: Domain,
+        epsilon: float = 1,
+        delta: float = 1e-5,
+        rounds: int = None,
+        compress: bool = True,
         n_iters: int = 1000,
         max_model_size=80,
         degree=2,
         num_marginals=None,
         max_cells=10000,
         structural_zeros={},
-        domain=None,
         random_state: RandomState = None,
         n_jobs: int = -1,
     ):

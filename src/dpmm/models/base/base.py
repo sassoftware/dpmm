@@ -1,7 +1,8 @@
 import json
 from numpy.random import RandomState
 from pathlib import Path
-from typing import Self, Dict
+from typing import Self
+from dpmm.models.base.mbi import Domain
 import pandas as pd
 
 
@@ -10,11 +11,11 @@ class GenerativeModel:
 
     name: str = None
 
-    def __init__(self, domain: Dict, random_state: RandomState = None):
+    def __init__(self, domain: Domain, random_state: RandomState = None):
         self.domain = domain
         self.random_state = random_state
 
-    def set_domain(self, domain: Dict):
+    def set_domain(self, domain: Domain):
         self.domain = domain
 
     def set_random_state(self, random_state: RandomState):

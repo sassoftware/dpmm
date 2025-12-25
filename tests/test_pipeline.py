@@ -80,7 +80,7 @@ def test_pipeline(model_class, use_domain, compress, with_zeros, condition, max_
         pipeline.fit(sample_dataframe, domain=domain, public=True, structural_zeros=structural_zeros)
         assert pipeline.gen.generator.cliques is not None
 
-    if fit_mode in  ["fit_only", "pretrain_and_fit"]:
+    if fit_mode in ["fit_only", "pretrain_and_fit"]:
         pipeline.fit(sample_dataframe, domain=domain, structural_zeros=structural_zeros)
 
     if serialise:

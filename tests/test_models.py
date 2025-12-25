@@ -26,15 +26,37 @@ def sample_dataframe():
 @pytest.mark.parametrize("fit_mode", ["pretrain_only", "pretrain_and_fit", "fit_only"])
 def test_models(model_class, use_domain, compress, max_model_size, epsilon, condition, serialise, sample_dataframe, with_zeros, fit_mode):
     if use_domain:
-        domain =  {
+        domain = {
             col: sample_dataframe[col].max() + 1
             for col in sample_dataframe.columns
         }
     else:
         domain = None
 
-
+    # When domain is None, expect an AssertionError
     structural_zeros = None
+    if with_zeros:
+        zero_col = np.random.choice(sample_dataframe.columns, size=1)[0]
+        structural_zeros = {
+            zero_col: np.random.choice(sample_dataframe[zero_col].max() + 1, replace=False, size=3)
+        }
+
+    random_state = np.random.RandomState(42)
+    model_args = dict(
+        epsilon=epsilon,
+        domain=domain,
+        compress=compress,
+        max_model_size=max_model_size,
+        n_iters=10,
+    )
+
+    if model_class.name == "aim":
+        model_args["rounds"] = 5
+    elif model_class.name == "priv-bayes":
+        model_args["degree"] = 1
+
+    model = model_class(**model_args)
+    
     if with_zeros:
         zero_col = np.random.choice(sample_dataframe.columns, size=1)[0]
         structural_zeros = {
@@ -56,6 +78,13 @@ def test_models(model_class, use_domain, compress, max_model_size, epsilon, cond
         model_args["degree"] = 1
     
     model = model_class(**model_args)
+
+    if not use_domain:
+        with pytest.raises(AssertionError, match="Domain must be provided") as e:
+            model.fit(sample_dataframe)
+
+        return
+    
     if with_zeros:
         model.set_structural_zeros(structural_zeros)
 
@@ -69,17 +98,13 @@ def test_models(model_class, use_domain, compress, max_model_size, epsilon, cond
         assert model.generator.cliques is not None
         assert model.generator.fit_state == "pretrained"
 
-    
-    if fit_mode in  ["fit_only", "pretrain_and_fit"]:
+    if fit_mode in ["fit_only", "pretrain_and_fit"]:
         model.fit(sample_dataframe)
         assert model.generator.fit_state == "trained"
-    
     
         if max_model_size is not None:
             assert model.generator.model_size <= max_model_size
     
-    
-
     if serialise:
         with TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)

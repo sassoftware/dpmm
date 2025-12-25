@@ -2,6 +2,8 @@
 
 ![Tests](https://github.com/sassoftware/dpmm/workflows/Test%20Suite/badge.svg)
 ![Coverage](https://raw.githubusercontent.com/sassoftware/dpmm/main/.github/badges/coverage.svg)
+[![arXiv](https://img.shields.io/badge/arXiv-2506.00322-b31b1b.svg)](https://arxiv.org/abs/2506.00322)
+
 
 
 ## Overview
@@ -20,7 +22,7 @@ Summary of main features:
 
 __NB: Intended Use -- _dpmm_ is designed for research and exploratory use in privacy-preserving synthetic data generation (particularly in simple scenarios such as preserving high-quality 1/2-way marginals in datasets with up to 32 features<sup>[paper<sub>1</sub>](https://arxiv.org/abs/2112.09238),[paper<sub>2</sub>](https://arxiv.org/abs/2305.10994)</sup>) and is not intended for production use in complex, real-world applications.__
 
- 
+
 
 ## Installation
 
@@ -61,6 +63,8 @@ pytest tests/
 We provide numerous examples demonstrating the features of __dpmm__ across data preprocssing as well as the training and generation of generative models.
 The examples are available across all models and model settings, and are accessible from the repository (if installed locally).
 
+
+__NB: the general intent of this package is to be used through the pipeline layer to guarantee that no privacy leakage is occuring, it is possible to use the models directly but in that instance providing a domain is a requirement to ensure privacy guarantees.__
 
 ### Preprocessing
 The provided generative pipelines combine automatic DP descritization preprocessing with a generative model and allows for the following features:

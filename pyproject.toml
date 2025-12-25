@@ -1,7 +1,7 @@
 
 [tool.poetry]
 name = "dpmm"
-version = "0.1.9"
+version = "0.2.0"
 description = "dpmm: a library for synthetic tabular data generation with rich functionality and end-to-end Differential Privacy guarantees"
 license = "Apache-2.0"
 
@@ -13,7 +13,7 @@ keywords = ["machine-learning", "tabular-data", "differential-privacy", "synthet
 
 [project]
 name = "dpmm"
-version = "0.1.9"
+version = "0.2.0"
 description = "dpmm: a library for synthetic tabular data generation with rich functionality and end-to-end Differential Privacy guarantees"
 authors = [
     {name = "Sofiane Mahiou, Georgi Ganev", email = "sofiane.mahiou@sas.com"}
