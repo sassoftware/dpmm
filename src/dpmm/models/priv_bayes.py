@@ -18,6 +18,7 @@ from scipy.special import logsumexp
 
 from dpmm.models.base.graphical import GraphicalGenerativeModel
 from dpmm.models.base.mbi import Dataset, GraphicalModel
+from dpmm.models.base.mbi.domain import Domain
 from dpmm.models.base.mechanisms import cdp_rho
 from dpmm.models.base.memory import clique_size
 from dpmm.utils import to_path
@@ -195,6 +196,7 @@ class PrivBayes(Mechanism):
 
     def __init__(
         self,
+        domain: Domain,
         epsilon=1,
         delta=None,
         degree=2,
@@ -204,7 +206,6 @@ class PrivBayes(Mechanism):
         prng: RandomState = None,
         max_model_size: int = None,
         compress=False,
-        domain=None,
         structural_zeros: Dict = None,
     ):
         super().__init__(
@@ -428,13 +429,13 @@ class PrivBayesGM(GraphicalGenerativeModel):
 
     def __init__(
         self,
-        epsilon=1,
-        delta=1e-5,
-        degree=2,
+        domain: Domain,
+        epsilon: float = 1,
+        delta: float = 1e-5,
+        degree: int = 2,
         n_iters: int = 5000,
-        compress=True,
+        compress: bool = True,
         max_model_size: int = None,
-        domain=None,
         random_state: RandomState = None,
         n_jobs: int = -1,
     ):
@@ -498,7 +499,9 @@ class PrivBayesGM(GraphicalGenerativeModel):
         :rtype: PrivBayesGM
         """
         generator = PrivBayes.load(path)
-        obj = cls(epsilon=generator.epsilon, delta=generator.delta)
+        obj = cls(
+            epsilon=generator.epsilon, delta=generator.delta, domain=generator._domain
+        )
         del obj.generator
         obj.generator = generator
 

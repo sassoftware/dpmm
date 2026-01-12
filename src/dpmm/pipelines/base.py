@@ -86,6 +86,9 @@ class GenerativePipeline:
             zeros = self.proc.zeros
             t_domain = self.proc.bin_domain
         else:
+            assert (
+                domain is not None
+            ), "Domain must be provided if no processing is used."
             t_domain = domain
             t_df = df
             zeros = structural_zeros
@@ -238,6 +241,7 @@ class MMPipeline(GenerativePipeline):
             compress=compress,
             max_model_size=max_model_size,
             n_jobs=n_jobs,
+            domain=None,
             **gen_kwargs
         )
 

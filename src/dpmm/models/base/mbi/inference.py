@@ -386,7 +386,9 @@ class FactoredInference:
                 device = self.Factor.device
                 y = torch.tensor(y, dtype=torch.float32, device=device)
                 if isinstance(q_matrix, np.ndarray):
-                    q_matrix = torch.tensor(q_matrix, dtype=torch.float32, device=device)
+                    q_matrix = torch.tensor(
+                        q_matrix, dtype=torch.float32, device=device
+                    )
                 elif sparse.issparse(q_matrix):
                     q_matrix = q_matrix.tocoo()
                     idx = torch.LongTensor([q_matrix.row, q_matrix.col])

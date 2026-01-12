@@ -92,11 +92,11 @@ class MST(Mechanism):
 
     def __init__(
         self,
+        domain: Domain,
         epsilon: Optional[float] = None,
         delta: Optional[float] = None,
         n_iters: int = 10000,
         compress: bool = True,
-        domain: Optional[Domain] = None,
         prng: Optional[RandomState] = None,
         max_model_size: Optional[int] = None,
         structural_zeros: Optional[dict] = None,
@@ -333,12 +333,12 @@ class MSTGM(GraphicalGenerativeModel):
 
     def __init__(
         self,
+        domain: Domain,
         epsilon: float = 1,
         delta: float = 1e-5,
         n_iters: int = 5000,
         compress: bool = True,
         max_model_size: Optional[int] = None,
-        domain: Optional[Domain] = None,
         random_state: Optional[RandomState] = None,
         n_jobs: int = -1,
     ):
@@ -401,7 +401,9 @@ class MSTGM(GraphicalGenerativeModel):
         :rtype: MSTGM
         """
         generator = MST.load(path)
-        obj = cls(epsilon=generator.epsilon, delta=generator.delta)
+        obj = cls(
+            epsilon=generator.epsilon, delta=generator.delta, domain=generator._domain
+        )
         del obj.generator
         obj.generator = generator
 

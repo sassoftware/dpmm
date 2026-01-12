@@ -20,10 +20,10 @@ class Mechanism:
         self,
         epsilon,
         delta,
+        domain,
         prng: RandomState = None,
         max_model_size: int = None,
         compress=False,
-        domain=None,
         structural_zeros: Dict = None,
         n_jobs: int = -1,
     ):
@@ -59,7 +59,6 @@ class Mechanism:
             self.compressor = None
 
         self.set_structural_zeros(structural_zeros)
-
         self._domain = domain
         self.max_model_size = max_model_size
         self.model_size = None
@@ -108,19 +107,11 @@ class Mechanism:
         self._domain = domain
 
     def fit(self, df, public=False, marginals_only=False, *args, **kwargs):
-        # prepare data
-        if self._domain is None:
-            _domain = (df.astype(int).max(axis=0) + 1).to_dict()
-            if not public:
-                # TODO: Add warning
-                pass
-            else:
-                self._domain = _domain
-        else:
-            _domain = self._domain
+
+        assert self._domain is not None, "Domain must be provided"
 
         domain = Domain(
-            list(df.columns), np.array([_domain[col] for col in df.columns])
+            list(df.columns), np.array([self._domain[col] for col in df.columns])
         )
 
         data = Dataset(df, domain)

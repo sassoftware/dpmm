@@ -64,6 +64,8 @@ We provide numerous examples demonstrating the features of __dpmm__ across data 
 The examples are available across all models and model settings, and are accessible from the repository (if installed locally).
 
 
+__NB: the general intent of this package is to be used through the pipeline layer to guarantee that no privacy leakage is occuring, it is possible to use the models directly but in that instance providing a domain is a requirement to ensure privacy guarantees.__
+
 ### Preprocessing
 The provided generative pipelines combine automatic DP descritization preprocessing with a generative model and allows for the following features:
 
