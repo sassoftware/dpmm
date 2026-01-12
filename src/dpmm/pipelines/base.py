@@ -241,6 +241,7 @@ class MMPipeline(GenerativePipeline):
             compress=compress,
             max_model_size=max_model_size,
             n_jobs=n_jobs,
+            domain=None,
             **gen_kwargs
         )
 
