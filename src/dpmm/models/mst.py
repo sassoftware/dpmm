@@ -65,7 +65,7 @@ class MST(Mechanism):
     Maximum Spanning Tree (MST) mechanism is a differentially private generative model relying
     on selecting an optimal set of marginals to approximate the joint distribution of the data.
     It uses the exponential mechanism to select higher-order marginals based on their weights.
-    The marginals are measured using the Laplace mechanism.
+    The marginals are measured using the Gaussian mechanism.
     The measured marginals are then used to estimate a maximum spanning tree which will be able to generate data.
 
     Ref: https://arxiv.org/pdf/2108.04978
@@ -308,7 +308,7 @@ class MSTGM(GraphicalGenerativeModel):
     Maximum Spanning Tree (MST) mechanism is a differentially private generative model relying
     on selecting an optimal set of marginals to approximate the joint distribution of the data.
     It uses the exponential mechanism to select higher-order marginals based on their weights.
-    The marginals are measured using the Laplace mechanism.
+    The marginals are measured using the Gaussian mechanism.
     The measured marginals are then used to estimate a maximum spanning tree which will be able to generate data.
 
     Ref: https://arxiv.org/pdf/2108.04978
