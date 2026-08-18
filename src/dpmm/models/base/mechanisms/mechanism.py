@@ -124,7 +124,7 @@ class Mechanism:
                 self.rho = cdp_rho(self.epsilon, self.delta)
                 self.sigma = np.sqrt(1 / (2 * self.rho))
 
-            if self.compress:
+            if getattr(self, "_compression_applied", self.compress):
                 data = self.compressor.transform(data)
 
             measures = self.measure(data, public=public, flatten=True)
@@ -135,7 +135,10 @@ class Mechanism:
         self.fit_state = "pretrained"
         if not public and not marginals_only:
             engine = FactoredInference(
-                domain=data.domain, iters=self.n_iters, prng=self.prng
+                domain=data.domain,
+                iters=self.n_iters,
+                prng=self.prng,
+                structural_zeros=self.structural_zeros,
             )
             self.model = engine.estimate(measures)
 
@@ -147,7 +150,11 @@ class Mechanism:
 
     def _measure(self, data, proj, wgt, flatten=None, public=False):
         if flatten is None:
-            flatten = self.compress
+            flatten = getattr(
+                self,
+                "_compression_applied",
+                self.compress,
+            )
         x = data.project(list(proj)).datavector(flatten=flatten)
         # TODO: figure out to make determinstic
         if public:
@@ -195,13 +202,19 @@ class Mechanism:
         if condition_records is not None:
             _conditions = condition_records.copy()
 
-        if (self.compress) and condition_records is not None:
+        compression_applied = getattr(
+            self,
+            "_compression_applied",
+            self.compress,
+        )
+
+        if compression_applied and condition_records is not None:
             condition_records = self.compressor.transform(condition_records)
 
         synth = self.model.synthetic_data(
             rows=n_records, condition_records=condition_records
         )
-        if self.compress:
+        if compression_applied:
             synth = self.compressor.reverse(synth)
 
         synth_df = synth.df

@@ -81,10 +81,22 @@ class GenerativePipeline:
             else:
                 t_df = self.proc.transform(df)
 
-            if structural_zeros is not None:
-                self.proc.set_structural_zeros(structural_zeros)
-            zeros = self.proc.zeros
             t_domain = self.proc.bin_domain
+
+            if structural_zeros is not None:
+                joint_structural_zeros = any(
+                    isinstance(key, tuple)
+                    for key in structural_zeros
+                )
+
+                if joint_structural_zeros:
+                    zeros = structural_zeros
+                else:
+                    self.proc.set_structural_zeros(structural_zeros)
+                    zeros = self.proc.zeros
+            else:
+                zeros = None
+
         else:
             assert (
                 domain is not None
