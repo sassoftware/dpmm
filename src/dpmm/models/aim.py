@@ -498,13 +498,19 @@ class AIM(Mechanism):
                 for cl in oneway
             ]
 
-        if self.compress:
+        self._compression_applied = (
+            self.compress
+            and not self.structural_zeros
+        )
+
+        if self._compression_applied:
             measurements = self.compressor.fit(measurements)
             data = self.compressor.transform(data)
 
         self.engine = FactoredInference(
             data.domain,
             iters=self.n_iters,
+            structural_zeros=self.structural_zeros,
             warm_start=True,
             prng=self.prng,
         )
