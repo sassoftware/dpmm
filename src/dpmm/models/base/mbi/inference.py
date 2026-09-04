@@ -270,18 +270,22 @@ class FactoredInference:
         nols = stepsize is not None
         if np.isscalar(stepsize):
             alpha = float(stepsize)
-            stepsize = alpha
+
+            def stepsize(_):
+                return alpha
+
         if stepsize is None:
             alpha = 1.0 / self.model.total**2
-            stepsize = 2.0 * alpha
 
+            def stepsize(_):
+                return 2.0 * alpha
         for t in range(1, self.iters + 1):
             if callback is not None:
                 callback(mu)
             omega, nu = theta, mu
             curr_loss, d_l = ans
             # print('Gradient Norm', np.sqrt(d_l.dot(d_l)))
-            alpha = stepsize
+            alpha = stepsize(t)
             for _ in range(25):
                 theta = omega - alpha * d_l
                 mu = model.belief_propagation(theta)
