@@ -1,0 +1,14 @@
+name: pgm-audit
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - tqdm
+  - scikit-learn
+  - pandas
+  - matplotlib
+  - jupyterlab
+  - pip
+  - pip:
+      - dpmm
+      - riskcal
