@@ -209,7 +209,7 @@ class MMPipeline(GenerativePipeline):
         gen_kwargs: Optional[Dict] = None,
         # Processing Params
         binner_type: Optional[str] = None,
-        proc_epsilon: float = 0.1,
+        proc_epsilon: Optional[float] = 0.1,
         n_bins: Union[str, int] = "auto",
         binner_kwargs: Optional[Dict] = None,
         disable_processing: bool = False,
@@ -217,11 +217,20 @@ class MMPipeline(GenerativePipeline):
         """
         Initialize the MMPipeline.
 
-        :param epsilon: Privacy budget for the generative model.
+        :param epsilon: Total privacy budget for the pipeline. When private
+            preprocessing is enabled, proc_epsilon is deducted from epsilon and
+            the remaining budget is used by the generative model.
         :param delta: Delta parameter for differential privacy.
         :param gen_kwargs: Additional arguments for the generative model.
         :param binner_type: Type of binner to use (e.g., "priv-tree").
-        :param proc_epsilon: Privacy budget for the processing step.
+            If binner_type is not specified, PrivTree is used when
+            proc_epsilon is provided and Uniform binning is used when
+            proc_epsilon=None.
+        :param proc_epsilon: Privacy budget allocated to differentially private
+            preprocessing. When preprocessing is enabled, this budget is deducted
+            from epsilon. Must be positive and smaller than epsilon, or None.
+            If None, non-private preprocessing is used and the full epsilon is
+            allocated to the generative model. Defaults to 0.1.
         :param n_bins: Number of bins or 'auto' for automatic binning.
         :param binner_kwargs: Additional arguments for the binner.
         :param disable_processing: Whether to disable the processing step.
@@ -241,6 +250,17 @@ class MMPipeline(GenerativePipeline):
         if binner_kwargs is None:
             binner_kwargs = {}
 
+        if proc_epsilon is not None:
+            if proc_epsilon <= 0:
+                raise ValueError("proc_epsilon must be positive or None.")
+            if proc_epsilon >= epsilon:
+                raise ValueError("proc_epsilon must be smaller than epsilon.")
+
+        if proc_epsilon is not None and not disable_processing:
+            model_epsilon = epsilon - proc_epsilon
+        else:
+            model_epsilon = epsilon
+
         if binner_type is None:
             if proc_epsilon is not None:
                 binner_type = "priv-tree"
@@ -248,7 +268,7 @@ class MMPipeline(GenerativePipeline):
                 binner_type = "uniform"
 
         gen = self.model(
-            epsilon=epsilon,
+            epsilon=model_epsilon,
             delta=delta,
             compress=compress,
             max_model_size=max_model_size,

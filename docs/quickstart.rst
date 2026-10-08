@@ -18,9 +18,9 @@ Here's a simple example of how to use dpmm to generate synthetic data:
 
    # Initialize the pipeline with privacy parameters
    model = MSTPipeline(
-       epsilon=1.0,      # Privacy budget
+       epsilon=1.0,      # Total privacy budget
        delta=1e-5,       # Privacy parameter
-       proc_epsilon=0.1  # Preprocessing privacy budget
+       proc_epsilon=0.1  # Budget allocated to private preprocessing
    )
 
    # Fit the model to your data

@@ -61,3 +61,28 @@ def test_mst_Pipeline(sample_data):
     Pipeline.fit(source_data, domain=domain)
     synthetic_data = Pipeline.generate(n_records=source_data.shape[0])
     validate_synthetic_data(synthetic_data, source_data, domain)
+
+def test_pipeline_preprocessing_budget():
+    pipeline = MSTPipeline(epsilon=1.0, proc_epsilon=0.1)
+    assert pipeline.gen.epsilon == pytest.approx(0.9)
+
+    pipeline = MSTPipeline(epsilon=1.0, proc_epsilon=None)
+    assert pipeline.gen.epsilon == pytest.approx(1.0)
+
+    pipeline = MSTPipeline(epsilon=1.0)
+    assert pipeline.gen.epsilon == pytest.approx(0.9)
+
+    with pytest.raises(ValueError):
+        MSTPipeline(epsilon=1.0, proc_epsilon=0)
+
+    with pytest.raises(ValueError):
+        MSTPipeline(epsilon=1.0, proc_epsilon=-0.1)
+
+    with pytest.raises(ValueError):
+        MSTPipeline(epsilon=1.0, proc_epsilon=1.0)
+
+    with pytest.raises(ValueError):
+        MSTPipeline(epsilon=1.0, proc_epsilon=1.1)
+
+    pipeline = MSTPipeline(epsilon=1.0, disable_processing=True)
+    assert pipeline.gen.epsilon == pytest.approx(1.0)

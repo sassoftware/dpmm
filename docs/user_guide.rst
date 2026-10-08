@@ -88,7 +88,7 @@ Adaptive discretization that learns optimal bin boundaries:
        epsilon=1.0,
        delta=1e-5,
        discretization='priv-tree',
-       proc_epsilon=0.1  # Privacy budget for preprocessing
+       proc_epsilon=0.1  # Budget allocated to private preprocessing
    )
 
 
@@ -309,7 +309,7 @@ Best Practices
 1. **Start with reasonable privacy budgets**
    
    - Begin with ε=1.0 and adjust based on your privacy requirements
-   - Allocate 10-20% of budget to preprocessing (proc_epsilon)
+   - Allocate 10-20% of the total ``epsilon`` budget to private preprocessing (``proc_epsilon``)
 
 2. **Provide domain information when possible**
    

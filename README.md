@@ -127,15 +127,15 @@ To get started with using the _dpmm_, follow the steps below:
 
    ```python
    model = MSTPipeline(
-      # Generator Parameters
+      # Privacy Parameters
       epsilon=1.0, 
       delta=1e-5,
-      # Discretiser Parametrs
+      # Budget allocated to preprocessing
       proc_epsilon=0.1,
    )
    model.fit(df, domain)
    ```
-
+   `epsilon` is the total privacy budget. `proc_epsilon` specifies the part of this budget allocated to private preprocessing and is subtracted from `epsilon` to determine the privacy budget for the generative model. For example, with `epsilon=1.0` and `proc_epsilon=0.1`, preprocessing is allocated `0.1` and the generative model is allocated `0.9`. Set `proc_epsilon=None` to use non-private preprocessing and allocate the full budget to the generative model.
 3. Generate synthetic data:
    ```python
    synth_df = model.generate(n_records=100)

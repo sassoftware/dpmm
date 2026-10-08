@@ -262,7 +262,7 @@ Experiment with different budget allocations:
        gen_eps = total_epsilon - proc_eps
        
        model = MSTPipeline(
-           epsilon=gen_eps,
+           epsilon=total_epsilon,
            delta=1e-5,
            proc_epsilon=proc_eps
        )
