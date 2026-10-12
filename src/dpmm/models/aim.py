@@ -23,6 +23,7 @@ from dpmm.models.base.mechanisms import Mechanism
 from dpmm.models.base.utils import gaussian_noise
 from dpmm.utils import to_path
 from scipy.special import softmax
+from tqdm import tqdm
 
 
 def powerset(iterable: list) -> itertools.chain:
@@ -307,6 +308,8 @@ class AIM(Mechanism):
     :type domain: Domain
     :param n_jobs: Number of parallel jobs.
     :type n_jobs: int
+    :param verbose: Whether to display progress information.
+    :type verbose: bool
     """
 
     def __init__(
@@ -324,6 +327,7 @@ class AIM(Mechanism):
         structural_zeros={},
         compress=False,
         n_jobs=-1,
+        verbose: bool = False,
     ):
         super().__init__(
             epsilon=epsilon,
@@ -341,6 +345,7 @@ class AIM(Mechanism):
         self.n_iters = n_iters
         self.num_marginals = num_marginals
         self.max_cells = max_cells
+        self.verbose = verbose
 
     def _worst_approximated(self, cl, wgt, x, model, sigma):
         bias = np.sqrt(2 / np.pi) * sigma * model.domain.size(cl)
@@ -485,6 +490,8 @@ class AIM(Mechanism):
         self.cliques = list(oneway)
 
         rho_used = len(oneway) * 0.5 / sigma**2
+        progress = self._init_progress()
+
         if self.n_jobs > 1:
             with Pool(self.n_jobs) as p:
                 oneway_measurements = p.starmap(
@@ -497,6 +504,7 @@ class AIM(Mechanism):
                 measure_one_way(cl, data.project(cl), sigma, self.prng, public)
                 for cl in oneway
             ]
+        self._update_progress(progress, 0, rounds, rho_used)
 
         self._compression_applied = (
             self.compress
@@ -563,8 +571,25 @@ class AIM(Mechanism):
             if np.linalg.norm(w - z, 1) <= sigma * np.sqrt(2 / np.pi) * n:
                 sigma /= 2
                 epsilon *= 2
-
+            self._update_progress(progress, t, rounds, rho_used)
+        progress.close()
         return data, measurements
+
+    def _init_progress(self):
+        return tqdm(
+            total=100,
+            desc="AIM progress",
+            disable=not self.verbose,
+            bar_format=(
+                "{desc}: {percentage:3.0f}%|{bar}| "
+                "[{elapsed} elapsed{postfix}]"
+            ),
+        )
+
+    def _update_progress(self, progress, t, rounds, rho_used):
+        progress_value = min(100.0 * rho_used / self.rho, 100.0)
+        progress.update(progress_value - progress.n)
+        progress.set_postfix(round=t, rounds=rounds)
 
     def store(self, path: Path):
         """
@@ -671,6 +696,8 @@ class AIMGM(GraphicalGenerativeModel):
     :type domain: Domain
     :param random_state: Random state for reproducibility.
     :type random_state: RandomState
+    :param verbose: Whether to display progress information.
+    :type verbose: bool
     """
 
     name = "aim"
@@ -690,6 +717,7 @@ class AIMGM(GraphicalGenerativeModel):
         structural_zeros={},
         random_state: RandomState = None,
         n_jobs: int = -1,
+        verbose: bool = False,
     ):
 
         super().__init__(domain=domain, random_state=random_state)
@@ -710,6 +738,7 @@ class AIMGM(GraphicalGenerativeModel):
             structural_zeros=structural_zeros,
             domain=domain,
             n_jobs=n_jobs,
+            verbose=verbose,
         )
 
     def set_random_state(self, random_state: RandomState):

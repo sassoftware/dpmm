@@ -146,6 +146,22 @@ def test_models(model_class, use_domain, compress, max_model_size, epsilon, cond
             is_zero = synthetic_data[zero_col].isin(structural_zeros[zero_col])
             assert is_zero.sum() == 0
 
+
+@pytest.mark.parametrize("verbose", [True, False])
+def test_aim_verbose(verbose):
+    model = AIMGM(
+        epsilon=1,
+        domain={"A": 2, "B": 2},
+        verbose=verbose,
+    )
+
+    assert model.generator.verbose is verbose
+
+    progress = model.generator._init_progress()
+    assert progress.disable is not verbose
+    progress.close()
+
+
 # @pytest.mark.parametrize("model_class", [AIMGM, PrivBayesGM, MSTGM])
 # def test_deterministic_behavior(model_class, sample_dataframe):
 #     random_state = np.random.RandomState(42)
