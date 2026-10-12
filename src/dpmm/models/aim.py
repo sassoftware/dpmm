@@ -590,6 +590,7 @@ class AIM(Mechanism):
                 "structural_zeros": self.structural_zeros,
                 "_domain": self._domain,
                 "compress": self._compress,
+                "_compression_applied": self._compression_applied,
                 "compressor": self.compressor,
                 "cliques": self.cliques,
                 "fit_state": self.fit_state,
@@ -631,6 +632,9 @@ class AIM(Mechanism):
         obj.fit_state = state["fit_state"]
         obj.cliques = state["cliques"]
         obj.compressor = state["compressor"]
+        obj._compression_applied = state.get(
+            "_compression_applied", state["compress"]
+        )
         model_path = path / "estimator.pickle"
         if model_path.exists():
             obj.model = GraphicalModel.load(model_path)

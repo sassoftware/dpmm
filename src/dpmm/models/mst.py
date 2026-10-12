@@ -133,7 +133,12 @@ class MST(Mechanism):
 
         log1 = self.measure(data, cliques=cliques_1, public=public)
         # compress domain of all 1-way marginals
-        if self.compress:
+        self._compression_applied = (
+            self.compress
+            and not self.structural_zeros
+        )
+
+        if self._compression_applied:
             log1 = self.compressor.fit(log1)
             data = self.compressor.transform(data)
 
@@ -258,6 +263,7 @@ class MST(Mechanism):
                 "epsilon": self.epsilon,
                 "delta": self.delta,
                 "compress": self._compress,
+                "_compression_applied": self._compression_applied,
                 "compressor": self.compressor,
                 "cliques": self.cliques,
                 "rho": self.rho,
@@ -296,6 +302,9 @@ class MST(Mechanism):
         obj.cliques = state["cliques"]
         obj.fit_state = state["fit_state"]
         obj.compressor = state["compressor"]
+        obj._compression_applied = state.get(
+            "_compression_applied", state["compress"]
+        )
         obj.model_size = state["model_size"]
         model_path = path / "estimator.pickle"
         if model_path.exists():

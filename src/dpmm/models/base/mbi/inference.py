@@ -69,6 +69,7 @@ class FactoredInference:
         for cl in structural_zeros:
             dom = self.domain.project(cl)
             fact = structural_zeros[cl]
+            cl = (cl,) if isinstance(cl, str) else tuple(cl)
             self.structural_zeros[cl] = self.Factor.active(dom, fact)
 
     @property

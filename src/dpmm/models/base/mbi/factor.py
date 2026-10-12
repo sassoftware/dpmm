@@ -54,7 +54,12 @@ class Factor:
         :param: domain: the domain of this factor
         :param: structural_zeros: a list of values that are not possible
         """
-        idx = tuple(np.array(structural_zeros).T)
+        structural_zeros = np.array(structural_zeros)
+        idx = (
+            (structural_zeros,)
+            if structural_zeros.ndim == 1
+            else tuple(structural_zeros.T)
+        )
         vals = np.zeros(domain.shape)
         vals[idx] = -np.inf
         return Factor(domain, vals)
