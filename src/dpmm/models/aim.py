@@ -439,7 +439,161 @@ class AIM(Mechanism):
         else:
             return self.exponential_mechanism(errors, eps, max_sensitivity)
 
-    def _fit(self, data: Dataset, public=False, workload=None):  # noqa: C901
+    def _prepare_workload(
+        self, data, workload=None,
+    ):
+        """Prepare the AIM workload and compile its candidate marginals."""
+        if workload is None:
+            workload = list(itertools.combinations(data.domain, self.degree,))
+
+            workload = [cl for cl in workload if data.domain.size(cl) <= self.max_cells]
+
+            workload = [(cl, 1.0) for cl in workload]
+
+        if self.num_marginals is not None:
+            workload = [
+                workload[i]
+                for i in self.prng.choice(
+                    len(workload), self.num_marginals, replace=False,
+                )
+            ]
+
+        workload = [cl for cl, _ in workload]
+
+        candidates = compile_workload(workload)
+
+        oneway = [cl for cl in candidates if len(cl) == 1]
+
+        return candidates, oneway
+
+    def _initialize_measurements(
+        self, data, oneway, sigma, public=False,
+    ):
+        """Perform AIM's initial one-way measurements."""
+        measurements = []
+
+        self.cliques = list(oneway)
+
+        rho_used = len(oneway) * 0.5 / sigma ** 2
+
+        if self.n_jobs > 1:
+            with Pool(self.n_jobs) as p:
+                oneway_measurements = p.starmap(
+                    measure_one_way,
+                    [(cl, data, sigma, self.prng, public,) for cl in oneway],
+                )
+
+            measurements.extend(oneway_measurements)
+
+        else:
+            measurements = [
+                measure_one_way(cl, data.project(cl), sigma, self.prng, public,)
+                for cl in oneway
+            ]
+
+        self._compression_applied = self.compress and not self.structural_zeros
+
+        if self._compression_applied:
+            measurements = self.compressor.fit(measurements)
+
+            data = self.compressor.transform(data)
+
+        return data, measurements, rho_used
+
+    def _initialize_model(
+        self, data, candidates, measurements,
+    ):
+        """Initialize AIM's inference engine and graphical model."""
+        self.engine = FactoredInference(
+            data.domain,
+            iters=self.n_iters,
+            structural_zeros=self.structural_zeros,
+            warm_start=True,
+            prng=self.prng,
+        )
+
+        answers = {cl: data.project(cl).datavector() for cl in candidates}
+
+        model = self.engine.estimate(measurements)
+
+        return model, answers
+
+    def _adaptive_measurement_loop(
+        self,
+        data,
+        candidates,
+        measurements,
+        model,
+        answers,
+        rounds,
+        sigma,
+        epsilon,
+        rho_used,
+        rho_budget,
+        public=False,
+    ):
+        """Run AIM's adaptive measurement loop."""
+        t = 0
+        terminate = False
+
+        while not terminate:
+            t += 1
+
+            if public and t >= rounds:
+                break
+            elif rho_budget - rho_used < 2 * (
+                0.5 / sigma ** 2 + 1.0 / 8 * epsilon ** 2
+            ):
+                # Just use up whatever remaining budget there is
+                # for one last round.
+                remaining = rho_budget - rho_used
+
+                if remaining < 0:
+                    break
+
+                sigma = np.sqrt(1 / (2 * 0.9 * remaining))
+                epsilon = np.sqrt(8 * 0.1 * remaining)
+                terminate = True
+
+            rho_used += 1.0 / 8 * epsilon ** 2 + 0.5 / sigma ** 2
+
+            if self.max_model_size is not None:
+                size_limit = self.max_model_size * rho_used / rho_budget
+            else:
+                size_limit = None
+
+            small_candidates = filter_candidates(candidates, model, size_limit,)
+
+            cl = self.worst_approximated(
+                small_candidates, answers, model, epsilon, sigma, public,
+            )
+
+            n = data.domain.size(cl)
+            q_matrix = Identity(n)
+            x = data.project(cl).datavector()
+
+            # TODO: figure out to make determinstic
+            if public:
+                y = x
+            else:
+                y = x + gaussian_noise(sigma=sigma, size=n,)
+
+            self.cliques.append(cl)
+            measurements.append((q_matrix, y, sigma, cl))
+
+            z = model.project(cl).datavector()
+
+            model = self.engine.estimate(measurements)
+
+            w = model.project(cl).datavector()
+
+            if np.linalg.norm(w - z, 1) <= sigma * np.sqrt(2 / np.pi) * n:
+                sigma /= 2
+                epsilon *= 2
+
+        return measurements
+
+    def _fit(self, data: Dataset, public=False, workload=None):
         """
         Fit the AIM mechanism to the data.
 
@@ -457,112 +611,33 @@ class AIM(Mechanism):
             >>> _fit(data, public=True)
             (data, measurements)
         """
-        if workload is None:
-            workload = list(itertools.combinations(data.domain, self.degree))
-            workload = [cl for cl in workload if data.domain.size(cl) <= self.max_cells]
-            workload = [(cl, 1.0) for cl in workload]
-
-        if self.num_marginals is not None:
-            workload = [
-                workload[i]
-                for i in self.prng.choice(
-                    len(workload), self.num_marginals, replace=False
-                )
-            ]
-
         rounds = self.rounds or 16 * len(data.domain)
-        workload = [cl for cl, _ in workload]
-        candidates = compile_workload(workload)
 
-        oneway = [cl for cl in candidates if len(cl) == 1]
+        (candidates, oneway,) = self._prepare_workload(data, workload,)
 
         sigma = np.sqrt(rounds / (2 * 0.9 * self.rho))
         epsilon = np.sqrt(8 * 0.1 * self.rho / rounds)
 
-        measurements = []
-
-        # cliques & sigmas
-        self.cliques = list(oneway)
-
-        rho_used = len(oneway) * 0.5 / sigma**2
-        if self.n_jobs > 1:
-            with Pool(self.n_jobs) as p:
-                oneway_measurements = p.starmap(
-                    measure_one_way,
-                    [(cl, data, sigma, self.prng, public) for cl in oneway],
-                )
-            measurements.extend(oneway_measurements)
-        else:
-            measurements = [
-                measure_one_way(cl, data.project(cl), sigma, self.prng, public)
-                for cl in oneway
-            ]
-
-        self._compression_applied = (
-            self.compress
-            and not self.structural_zeros
+        (data, measurements, rho_used,) = self._initialize_measurements(
+            data=data, oneway=oneway, sigma=sigma, public=public,
+        )
+        model, answers = self._initialize_model(
+            data=data, candidates=candidates, measurements=measurements,
         )
 
-        if self._compression_applied:
-            measurements = self.compressor.fit(measurements)
-            data = self.compressor.transform(data)
-
-        self.engine = FactoredInference(
-            data.domain,
-            iters=self.n_iters,
-            structural_zeros=self.structural_zeros,
-            warm_start=True,
-            prng=self.prng,
+        measurements = self._adaptive_measurement_loop(
+            data=data,
+            candidates=candidates,
+            measurements=measurements,
+            model=model,
+            answers=answers,
+            rounds=rounds,
+            sigma=sigma,
+            epsilon=epsilon,
+            rho_used=rho_used,
+            rho_budget=self.rho,
+            public=public,
         )
-
-        answers = {cl: data.project(cl).datavector() for cl in candidates}
-
-        model = self.engine.estimate(measurements)
-
-        t = 0
-        terminate = False
-        while not terminate:
-            t += 1
-            if public and t >= rounds:
-                break
-            elif self.rho - rho_used < 2 * (0.5 / sigma**2 + 1.0 / 8 * epsilon**2):
-                # Just use up whatever remaining budget there is for one last round
-                remaining = self.rho - rho_used
-                if remaining < 0:
-                    break
-                sigma = np.sqrt(1 / (2 * 0.9 * remaining))
-                epsilon = np.sqrt(8 * 0.1 * remaining)
-                terminate = True
-
-            rho_used += 1.0 / 8 * epsilon**2 + 0.5 / sigma**2
-            if self.max_model_size is not None:
-                size_limit = self.max_model_size * rho_used / self.rho
-            else:
-                size_limit = None
-
-            small_candidates = filter_candidates(candidates, model, size_limit)
-            cl = self.worst_approximated(
-                small_candidates, answers, model, epsilon, sigma, public
-            )
-
-            n = data.domain.size(cl)
-            q_matrix = Identity(n)
-            x = data.project(cl).datavector()
-            # TODO: figure out to make determinstic
-            if public:
-                y = x
-            else:
-                y = x + gaussian_noise(sigma=sigma, size=n)
-
-            self.cliques.append(cl)
-            measurements.append((q_matrix, y, sigma, cl))
-            z = model.project(cl).datavector()
-
-            model = self.engine.estimate(measurements)
-            w = model.project(cl).datavector()
-            if np.linalg.norm(w - z, 1) <= sigma * np.sqrt(2 / np.pi) * n:
-                sigma /= 2
-                epsilon *= 2
 
         return data, measurements
 
